@@ -31,7 +31,6 @@ exports.handler = async (event) => {
       mode: "payment",
       payment_method_types: ["card"],
       billing_address_collection: "required",
-
       line_items: [
         {
           price_data: {
@@ -45,7 +44,6 @@ exports.handler = async (event) => {
           quantity: 1
         }
       ],
-
       metadata: {
         job_name: data.jobName || "",
         width: String(data.width),
@@ -53,7 +51,6 @@ exports.handler = async (event) => {
         quantity: String(data.quantity),
         upload_source: data.upload_source || "File Request Pro"
       },
-
       success_url: "https://www.unfoldingcreative.com/order-success",
       cancel_url: "https://www.unfoldingcreative.com/orderstickers"
     });
