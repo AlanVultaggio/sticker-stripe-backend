@@ -6,7 +6,7 @@
   const el = (id) => document.getElementById(id);
 
   // IMPORTANT: This must be your Netlify site URL (NOT unfoldingcreative.com)
-  const NETLIFY_BASE = "https://sticker-stripe-backend.netlify.app?v=2";
+  const NETLIFY_BASE = "https://sticker-stripe-backend.netlify.app";
 
   // Option A tier rates ($ per sqft)
   const RATE_PER_SQFT = {
