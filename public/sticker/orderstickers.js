@@ -151,16 +151,22 @@
         const res = await fetch(endpoint, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            order: data,
-            pricing: {
-              width_in: c.w,
-              height_in: c.h,
-              quantity: c.q,
-              total_cents: c.totalC,
-              unit_cents: c.unitC
-            }
-          })
+body: JSON.stringify({
+  // ✅ what the function is expecting (top-level)
+  width: c.w,
+  height: c.h,
+  quantity: c.q,
+
+  // keep both formats so the function can use whichever it was written for
+  total: Number((c.totalC / 100).toFixed(2)), // dollars
+  total_cents: c.totalC,
+  unit_cents: c.unitC,
+
+  // optional metadata (safe to include)
+  jobName: data.project_name || "",
+  order: data,
+  upload_source: "File Request Pro"
+})
         });
 
         if (!res.ok) {
