@@ -2,59 +2,53 @@ const Stripe = require("stripe");
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-/* ---------------- CORS ---------------- */
+const ALLOWED_ORIGINS = [
+  "https://www.unfoldingcreative.com",
+  "https://unfoldingcreative.com",
+];
 
-const ALLOWED_ORIGIN = "https://www.unfoldingcreative.com";
+function corsHeaders(origin) {
+  const allowOrigin =
+    ALLOWED_ORIGINS.includes(origin)
+      ? origin
+      : "https://www.unfoldingcreative.com";
 
-function corsHeaders() {
   return {
-    "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
+    "Access-Control-Allow-Origin": allowOrigin,
     "Access-Control-Allow-Headers": "Content-Type",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Content-Type": "application/json"
+    "Content-Type": "application/json",
   };
 }
 
-/* ---------------- HANDLER ---------------- */
-
 exports.handler = async (event) => {
+  const origin = event.headers.origin || "";
+  const headers = corsHeaders(origin);
 
-  const headers = corsHeaders();
-
-  // ✅ Handle preflight
+  // ✅ CRITICAL: handle preflight FIRST
   if (event.httpMethod === "OPTIONS") {
     return {
       statusCode: 200,
       headers,
-      body: ""
+      body: "",
     };
   }
 
-  // Only POST allowed
   if (event.httpMethod !== "POST") {
     return {
       statusCode: 405,
       headers,
-      body: JSON.stringify({ error: "Method not allowed" })
+      body: JSON.stringify({ error: "Method not allowed" }),
     };
   }
 
   try {
     const data = JSON.parse(event.body || "{}");
 
-    const { width, height, quantity, total, jobName, upload_source } = data;
-
-    if (!width || !height || !quantity || !total) {
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({ error: "Missing required fields" })
-      };
-    }
-
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       payment_method_types: ["card"],
+      billing_address_collection: "required",
 
       line_items: [
         {
@@ -62,37 +56,30 @@ exports.handler = async (event) => {
             currency: "usd",
             product_data: {
               name: "Custom Stickers",
-              description: `${quantity} stickers — ${width}" x ${height}"`
+              description: `${data.quantity} stickers — ${data.width}x${data.height}`,
             },
-            unit_amount: Math.round(Number(total) * 100)
+            unit_amount: Math.round(Number(data.total) * 100),
           },
-          quantity: 1
-        }
+          quantity: 1,
+        },
       ],
 
-      metadata: {
-        width: String(width),
-        height: String(height),
-        quantity: String(quantity),
-        job_name: jobName || "",
-        upload_source: upload_source || "File Request Pro"
-      },
-
-      success_url: "https://www.unfoldingcreative.com/order-success",
-      cancel_url: "https://www.unfoldingcreative.com/orderstickers"
+      success_url:
+        "https://www.unfoldingcreative.com/order-success",
+      cancel_url:
+        "https://www.unfoldingcreative.com/orderstickers",
     });
 
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify({ url: session.url })
+      body: JSON.stringify({ url: session.url }),
     };
-
   } catch (err) {
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ error: err.message })
+      body: JSON.stringify({ error: err.message }),
     };
   }
 };
