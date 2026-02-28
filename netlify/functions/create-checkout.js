@@ -1,10 +1,12 @@
-const Stripe = require("stripe");
-const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
-
-exports.handler = async () => {
+exports.handler = async (event) => {
   return {
     statusCode: 200,
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ stripeLoaded: !!stripe }),
+    headers: {
+      "Content-Type": "application/json",
+      "Access-Control-Allow-Origin": "https://www.unfoldingcreative.com",
+      "Access-Control-Allow-Headers": "Content-Type",
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
+    },
+    body: JSON.stringify({ ok: true, method: event.httpMethod }),
   };
 };
