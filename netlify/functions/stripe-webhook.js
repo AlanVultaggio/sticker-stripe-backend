@@ -65,7 +65,7 @@ Width: ${session.metadata.width}
 Height: ${session.metadata.height}
 Quantity: ${session.metadata.quantity}
 Shape: ${session.metadata.shape}
-Finish: ${session.metadata.finish}
+Lamination Finish: ${session.metadata.lamination}
 Material: ${session.metadata.material}
 Rush: ${session.metadata.rush}
 Notes: ${session.metadata.notes}
