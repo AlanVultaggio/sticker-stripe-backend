@@ -2,8 +2,6 @@
 
 const Stripe = require("stripe");
 
-// IMPORTANT: Stripe needs the *raw* body for webhook signature verification.
-// Netlify provides the raw payload on event.body.
 exports.handler = async (event) => {
   if (event.httpMethod === "OPTIONS") {
     return {
@@ -23,25 +21,35 @@ exports.handler = async (event) => {
 
   try {
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-    const sig = event.headers["stripe-signature"] || event.headers["Stripe-Signature"];
+
+    const sig =
+      event.headers["stripe-signature"] ||
+      event.headers["Stripe-Signature"];
+
     const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
-    if (!endpointSecret) {
-      return { statusCode: 500, body: "Missing STRIPE_WEBHOOK_SECRET" };
-    }
-
-    // Verify signature and construct event
     const stripeEvent = stripe.webhooks.constructEvent(
       event.body,
       sig,
       endpointSecret
     );
 
-    // For now we just acknowledge success.
-    // Later we’ll add your order fulfillment logic here.
+    // 👇 THIS IS THE NEW PART
+    if (stripeEvent.type === "checkout.session.completed") {
+      const session = stripeEvent.data.object;
+
+      console.log("✅ Checkout completed");
+      console.log("Session ID:", session.id);
+      console.log("Customer email:", session.customer_details?.email);
+      console.log("Amount total:", session.amount_total);
+    }
+
     return {
       statusCode: 200,
-      body: JSON.stringify({ received: true, type: stripeEvent.type }),
+      body: JSON.stringify({
+        received: true,
+        type: stripeEvent.type,
+      }),
     };
   } catch (err) {
     return {
