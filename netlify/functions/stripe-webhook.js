@@ -35,28 +35,27 @@ exports.handler = async (event) => {
       endpointSecret
     );
 
-    // 👇 THIS IS THE NEW PART
-    if (stripeEvent.type === "checkout.session.completed") {
-      const session = stripeEvent.data.object;
+    // 👇 Checkout completed
+if (stripeEvent.type === "checkout.session.completed") {
+  const session = stripeEvent.data.object;
 
-      console.log("✅ Checkout completed");
-      console.log("Session ID:", session.id);
-      console.log("Customer email:", session.customer_details?.email);
-      console.log("Amount total:", session.amount_total);
-    }
-    // ---- SEND EMAIL VIA RESEND (add directly below your console.log lines) ----
-if (session?.customer_details?.email) {
-  const toEmail = session.customer_details.email;
+  console.log("✅ Checkout completed");
+  console.log("Session ID:", session.id);
+  console.log("Customer email:", session.customer_details?.email);
+  console.log("Amount total:", session.amount_total);
 
-  // Build a simple order summary
-  const dollars = typeof session.amount_total === "number"
-    ? (session.amount_total / 100).toFixed(2)
-    : "0.00";
+  // ---- SEND EMAIL VIA RESEND ----
+  if (session?.customer_details?.email) {
+    const toEmail = session.customer_details.email;
 
-  const subject = `New Sticker Order — $${dollars}`;
+    const dollars =
+      typeof session.amount_total === "number"
+        ? (session.amount_total / 100).toFixed(2)
+        : "0.00";
 
-  const textBody =
-`New Sticker Order (Stripe)
+    const subject = `New Sticker Order — $${dollars}`;
+
+    const textBody = `New Sticker Order (Stripe)
 
 Session ID: ${session.id}
 Email: ${toEmail}
@@ -65,29 +64,29 @@ Payment Status: ${session.payment_status}
 Created: ${new Date((session.created || 0) * 1000).toISOString()}
 `;
 
-  // Send email (requires RESEND_API_KEY env var)
-  const resendResp = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      from: "Unfolding Creative <onboarding@resend.dev>",
-      to: ["alan@unfoldingcreative.com"],
-      subject,
-      text: textBody,
-    }),
-  });
+    const resendResp = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: "Unfolding Creative <onboarding@resend.dev>",
+        to: ["alan@unfoldingcreative.com"],
+        subject,
+        text: textBody,
+      }),
+    });
 
-  const resendJson = await resendResp.json().catch(() => ({}));
+    const resendJson = await resendResp.json().catch(() => ({}));
 
-  console.log("Resend status:", resendResp.status);
-  console.log("Resend response:", resendJson);
-} else {
-  console.log("No customer email found on session.customer_details.email");
+    console.log("Resend status:", resendResp.status);
+    console.log("Resend response:", resendJson);
+  } else {
+    console.log("No customer email found on session.customer_details.email");
+  }
+  // ---- END RESEND EMAIL ----
 }
-// ---- END RESEND EMAIL ----
     
     return {
       statusCode: 200,
