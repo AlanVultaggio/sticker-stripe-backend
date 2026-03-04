@@ -270,23 +270,24 @@ exports.handler = async function (event) {
           quantity: 1,
         },
       ],
-  metadata: {
-    width: String(payload.width || ""),
-    height: String(payload.height || ""),
-    quantity: String(payload.quantity || ""),
-    unit_cents: String(payload.unit_cents || ""),
-    total_cents: String(payload.total_cents || ""),
-    jobName: String(payload.jobName || ""),
-    upload_source: String(payload.upload_source || ""),
+metadata: {
+  width: String(payload.width || ""),
+  height: String(payload.height || ""),
+  quantity: String(payload.quantity || ""),
+  unit_cents: String(payload.unit_cents || ""),
+  total_cents: String(payload.total_cents || ""),
+  jobName: String(payload.jobName || ""),
+  upload_source: String(payload.upload_source || ""),
 
-    // ---- upgrade fields (safe if blank) ----
-    shape: String(payload.shape || ""),
-    finish: String(payload.finish || ""),        // gloss/matte, etc.
-    lamination: String(payload.lamination || ""), // if you use it separately
-    material: String(payload.material || ""),
-    rush: String(payload.rush || ""),
-    notes: String(payload.notes || ""),
-  },
+  // sticker configuration
+  shape: String(payload.shape || ""),
+  lamination: String(payload.lamination || ""), // gloss or matte
+  material: String(payload.material || ""),
+
+  // order options
+  rush: String(payload.rush || ""),
+  notes: String(payload.notes || ""),
+},
     });
 
     return jsonResponse(200, corsHeaders, {
