@@ -60,6 +60,16 @@ if (stripeEvent.type === "checkout.session.completed") {
 Session ID: ${session.id}
 Email: ${toEmail}
 Amount: $${dollars}
+
+Width: ${session.metadata.width}
+Height: ${session.metadata.height}
+Quantity: ${session.metadata.quantity}
+Shape: ${session.metadata.shape}
+Finish: ${session.metadata.finish}
+Material: ${session.metadata.material}
+Rush: ${session.metadata.rush}
+Notes: ${session.metadata.notes}
+
 Payment Status: ${session.payment_status}
 Created: ${new Date((session.created || 0) * 1000).toISOString()}
 `;
