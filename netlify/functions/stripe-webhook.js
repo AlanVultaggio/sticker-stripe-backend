@@ -72,7 +72,8 @@ Created: ${new Date((session.created || 0) * 1000).toISOString()}
       },
       body: JSON.stringify({
         from: "Unfolding Creative <onboarding@resend.dev>",
-        to: ["alan@unfoldingcreative.com"],
+        to: ["info@unfoldingcreative.com"],
+        cc: ["amanda@unfoldingcreative.com"],
         subject,
         text: textBody,
       }),
