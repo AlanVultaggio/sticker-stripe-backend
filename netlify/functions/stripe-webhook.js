@@ -93,6 +93,51 @@ Created: ${new Date((session.created || 0) * 1000).toISOString()}
 
     console.log("Resend status:", resendResp.status);
     console.log("Resend response:", resendJson);
+    // ---- SEND ORDER TO GOOGLE SHEET ----
+
+try {
+  const sheetResp = await fetch(process.env.GOOGLE_SHEET_WEBAPP_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      secret: process.env.GOOGLE_SHEET_SECRET,
+      contents: {
+        order_id: session.id,
+        customer_email: toEmail,
+        amount_total: dollars,
+        currency: "USD",
+        status: session.payment_status,
+
+        job_name: session.metadata.jobName || "",
+        width: session.metadata.width,
+        height: session.metadata.height,
+        quantity: session.metadata.quantity,
+
+        unit_cents: session.metadata.unit_cents,
+        total_cents: session.metadata.total_cents,
+
+        shape: session.metadata.shape,
+        lamination: session.metadata.lamination,
+        material: session.metadata.material,
+
+        rush: session.metadata.rush,
+        notes: session.metadata.notes,
+      },
+    }),
+  });
+
+  const sheetJson = await sheetResp.json().catch(() => ({}));
+
+  console.log("Sheet status:", sheetResp.status);
+  console.log("Sheet response:", sheetJson);
+
+} catch (err) {
+  console.error("Sheet logging error:", err);
+}
+
+// ---- END GOOGLE SHEET SEND ----
   } else {
     console.log("No customer email found on session.customer_details.email");
   }
