@@ -44,7 +44,51 @@ exports.handler = async (event) => {
       console.log("Customer email:", session.customer_details?.email);
       console.log("Amount total:", session.amount_total);
     }
+    // ---- SEND EMAIL VIA RESEND (add directly below your console.log lines) ----
+if (session?.customer_details?.email) {
+  const toEmail = session.customer_details.email;
 
+  // Build a simple order summary
+  const dollars = typeof session.amount_total === "number"
+    ? (session.amount_total / 100).toFixed(2)
+    : "0.00";
+
+  const subject = `New Sticker Order — $${dollars}`;
+
+  const textBody =
+`New Sticker Order (Stripe)
+
+Session ID: ${session.id}
+Email: ${toEmail}
+Amount: $${dollars}
+Payment Status: ${session.payment_status}
+Created: ${new Date((session.created || 0) * 1000).toISOString()}
+`;
+
+  // Send email (requires RESEND_API_KEY env var)
+  const resendResp = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from: "Unfolding Creative <onboarding@resend.dev>",
+      to: ["alan@unfoldingcreative.com"],
+      subject,
+      text: textBody,
+    }),
+  });
+
+  const resendJson = await resendResp.json().catch(() => ({}));
+
+  console.log("Resend status:", resendResp.status);
+  console.log("Resend response:", resendJson);
+} else {
+  console.log("No customer email found on session.customer_details.email");
+}
+// ---- END RESEND EMAIL ----
+    
     return {
       statusCode: 200,
       body: JSON.stringify({
