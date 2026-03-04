@@ -1,6 +1,7 @@
 // netlify/functions/stripe-webhook.js
 
 const Stripe = require("stripe");
+const fetch = require("node-fetch");
 
 exports.handler = async (event) => {
   if (event.httpMethod === "OPTIONS") {
