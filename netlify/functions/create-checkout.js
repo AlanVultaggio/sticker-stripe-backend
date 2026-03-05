@@ -198,12 +198,17 @@ exports.handler = async function (event) {
   const method = event && event.httpMethod;
 
   // Preflight
-  if (method === "OPTIONS") {
-    if (!corsHeaders) {
-      return { statusCode: 403, headers: { Vary: "Origin" }, body: "" };
-    }
-    return { statusCode: 204, headers: corsHeaders, body: "" };
-  }
+if (method === "OPTIONS") {
+  return {
+    statusCode: 204,
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Headers": "Content-Type",
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
+    },
+    body: "",
+  };
+}
 
   // CORS gate
   if (!corsHeaders) {
