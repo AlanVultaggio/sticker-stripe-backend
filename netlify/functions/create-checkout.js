@@ -3,9 +3,8 @@
 const DEFAULT_ORIGINS = [
   "https://www.unfoldingcreative.com",
   "https://unfoldingcreative.com",
-  "https://sticker-stripe-backend.netlify.app",
+  "https://sticker-stripe-backend.netlify.app"
 ];
-const DEFAULT_ORIGIN = "https://www.unfoldingcreative.com";
 
 function normalizeOrigin(origin) {
   return String(origin || "").trim().replace(/\/$/, "");
@@ -19,7 +18,7 @@ function getAllowedOrigins() {
     source
       .split(",")
       .map((o) => normalizeOrigin(o))
-      .filter(Boolean),
+      .filter(Boolean)
   );
 }
 
@@ -187,7 +186,7 @@ function jsonResponse(statusCode, corsHeaders, body) {
       {
         "Content-Type": "application/json",
       },
-      corsHeaders || {},
+      corsHeaders || {}
     ),
     body: JSON.stringify(body),
   };
