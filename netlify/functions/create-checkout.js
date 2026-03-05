@@ -5,7 +5,6 @@ const DEFAULT_ORIGINS = [
   "https://unfoldingcreative.com",
   "https://sticker-stripe-backend.netlify.app",
 ];
-
 const DEFAULT_ORIGIN = "https://www.unfoldingcreative.com";
 
 function normalizeOrigin(origin) {
