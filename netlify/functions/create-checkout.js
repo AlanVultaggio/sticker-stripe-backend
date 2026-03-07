@@ -112,6 +112,13 @@ exports.handler = async function (event) {
     return jsonResponse(400, corsHeaders, { error: "Invalid size or quantity" });
 }
 
+console.log("pricing debug", {
+  width,
+  height,
+  quantity,
+  totalCents
+});
+
   try {
     const Stripe = require("stripe");
     const stripe = new Stripe(stripeSecret);
