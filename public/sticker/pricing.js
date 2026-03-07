@@ -35,6 +35,9 @@
   const ppu = el("ppu");
   const total = el("total");
 
+  const estimateTotal = el("estimateTotal");
+  const estimateUnit = el("estimateUnit");
+
   const unitPriceCents = el("unitPriceCents");
   const totalCents = el("totalCents");
 
@@ -51,6 +54,8 @@
   function clearDisplay(message) {
     ppu.textContent = "$—";
     total.textContent = "$—";
+    if (estimateTotal) estimateTotal.textContent = "$—";
+    if (estimateUnit) estimateUnit.textContent = "$— per sticker";
     unitPriceCents.value = "";
     totalCents.value = "";
     if (statusEl && message) statusEl.textContent = message;
@@ -127,6 +132,13 @@
 
     ppu.textContent = dollars(unitC / 100);
     total.textContent = dollars(finalTotalC / 100);
+    if (estimateTotal) estimateTotal.textContent = dollars(finalTotalC / 100);
+    if (estimateUnit) estimateUnit.textContent = `${dollars(unitC / 100)} per sticker`;
+    if (summarySize) summarySize.textContent = `${w}" × ${h}"`;
+    if (summaryQty) summaryQty.textContent = String(q);
+    if (summaryFinish && finish) {
+      summaryFinish.textContent = finish.options[finish.selectedIndex]?.text || finish.value;
+    }
     unitPriceCents.value = String(unitC);
     totalCents.value = String(finalTotalC);
 
@@ -148,6 +160,7 @@
     widthIn.addEventListener(evt, calc);
     heightIn.addEventListener(evt, calc);
     qty.addEventListener(evt, calc);
+    if (finish) finish.addEventListener(evt, calc);
   });
 
   calc();
