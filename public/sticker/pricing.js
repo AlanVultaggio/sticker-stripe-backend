@@ -1,23 +1,32 @@
 (function () {
-  // Prevent double-loading if Squarespace injects twice
   if (window.UC_PRICING_LOADED) return;
   window.UC_PRICING_LOADED = true;
 
   const el = (id) => document.getElementById(id);
 
-  // Tier rates ($ per sqft) for quantity dropdown values
-  const RATE_PER_SQFT = {
-    50: 12.75,
-    100: 11.50,
-    250: 10.50,
-    500: 9.75,
-    1000: 9.00
+  const CONFIG = {
+    minWidth: 1,
+    minHeight: 1,
+    maxWidth: 24,
+    maxHeight: 24,
+    minimumBillableAreaSqIn: 9,
+    minimumOrderDollars: 36.95,
+    quantitySqFtRates: {
+      25: 22,
+      50: 19,
+      100: 16,
+      250: 13,
+      500: 11,
+      1000: 9,
+      2500: 7.25,
+      5000: 6
+    },
+    largeSizeAdjustments: [
+      { minAreaSqIn: 150, multiplier: 0.65 },
+      { minAreaSqIn: 300, multiplier: 0.45 }
+    ]
   };
 
-  // $30 minimum order total
-  const MIN_TOTAL_CENTS = 3000;
-
-  // Elements expected on the page
   const form = el("stickerOrderForm");
   const widthIn = el("widthIn");
   const heightIn = el("heightIn");
@@ -29,8 +38,9 @@
   const unitPriceCents = el("unitPriceCents");
   const totalCents = el("totalCents");
 
+  const statusEl = el("checkoutStatus");
+
   if (!form || !widthIn || !heightIn || !qty || !ppu || !total || !unitPriceCents || !totalCents) {
-    // If elements aren't present, quietly do nothing.
     return;
   }
 
@@ -38,59 +48,107 @@
     return n.toLocaleString(undefined, { style: "currency", currency: "USD" });
   }
 
-  // Gentle size multiplier:
-  // <= 9 in² : 1.00
-  // 9..16 in² : ramps down to 0.80
-  // >= 16 in² : 0.80
-  function sizeMultiplier(areaIn2) {
-    if (areaIn2 <= 9) return 1.0;
-    if (areaIn2 >= 16) return 0.80;
-    const t = (areaIn2 - 9) / (16 - 9);
-    return 1.0 - (0.20 * t);
+  function clearDisplay(message) {
+    ppu.textContent = "$—";
+    total.textContent = "$—";
+    unitPriceCents.value = "";
+    totalCents.value = "";
+    if (statusEl && message) statusEl.textContent = message;
+  }
+
+  function getValidatedQuantity(quantity) {
+    const q = Number.parseInt(quantity, 10);
+    return CONFIG.quantitySqFtRates[q] ? q : null;
+  }
+
+  function getBillableAreaSqIn(w, h) {
+    if (!Number.isFinite(w) || !Number.isFinite(h) || w <= 0 || h <= 0) {
+      return null;
+    }
+
+    if (w < CONFIG.minWidth || w > CONFIG.maxWidth) return null;
+    if (h < CONFIG.minHeight || h > CONFIG.maxHeight) return null;
+
+    return Math.max(w * h, CONFIG.minimumBillableAreaSqIn);
+  }
+
+  function getSqFtRate(quantity, billableAreaSqIn) {
+    const baseRate = CONFIG.quantitySqFtRates[quantity];
+    if (!baseRate) return null;
+
+    let adjustedRate = baseRate;
+
+    for (const rule of CONFIG.largeSizeAdjustments) {
+      if (billableAreaSqIn >= rule.minAreaSqIn) {
+        adjustedRate = baseRate * rule.multiplier;
+      }
+    }
+
+    return adjustedRate;
   }
 
   function calc() {
-    const w = parseFloat(widthIn.value || "0");
-    const h = parseFloat(heightIn.value || "0");
-    const q = parseInt(qty.value || "0", 10);
+    const w = Number.parseFloat(widthIn.value || "0");
+    const h = Number.parseFloat(heightIn.value || "0");
+    const q = getValidatedQuantity(qty.value || "0");
+
+    if (statusEl) statusEl.textContent = "";
 
     if (!w || !h || !q) {
-      ppu.textContent = "$—";
-      total.textContent = "$—";
-      unitPriceCents.value = "";
-      totalCents.value = "";
+      clearDisplay("");
       return { ok: false };
     }
 
-    const areaIn2 = w * h;
-    const sqftEach = areaIn2 / 144;
+    if (w < CONFIG.minWidth || w > CONFIG.maxWidth || h < CONFIG.minHeight || h > CONFIG.maxHeight) {
+      clearDisplay(`Size must be between ${CONFIG.minWidth}" and ${CONFIG.maxWidth}".`);
+      return { ok: false };
+    }
 
-    const rate = RATE_PER_SQFT[q] ?? RATE_PER_SQFT[50];
+    const actualAreaSqIn = w * h;
+    const billableAreaSqIn = getBillableAreaSqIn(w, h);
 
-    const baseUnitDollars = sqftEach * rate;
-    const unitDollars = baseUnitDollars * sizeMultiplier(areaIn2);
+    if (!billableAreaSqIn) {
+      clearDisplay("Invalid size.");
+      return { ok: false };
+    }
 
-    const totalDollars = unitDollars * q;
-    const rawTotalC = Math.round(totalDollars * 100);
+    const areaSqFt = billableAreaSqIn / 144;
+    const ratePerSqFt = getSqFtRate(q, billableAreaSqIn);
 
-    const totalC = Math.max(rawTotalC, MIN_TOTAL_CENTS);
-    const unitC = Math.max(1, Math.round(totalC / q));
+    if (!ratePerSqFt) {
+      clearDisplay("Invalid quantity.");
+      return { ok: false };
+    }
+
+    const rawTotalDollars = areaSqFt * q * ratePerSqFt;
+    const finalTotalDollars = Math.max(rawTotalDollars, CONFIG.minimumOrderDollars);
+    const finalTotalC = Math.round(finalTotalDollars * 100);
+    const unitC = Math.max(1, Math.round(finalTotalC / q));
 
     ppu.textContent = dollars(unitC / 100);
-    total.textContent = dollars(totalC / 100);
+    total.textContent = dollars(finalTotalC / 100);
     unitPriceCents.value = String(unitC);
-    totalCents.value = String(totalC);
+    totalCents.value = String(finalTotalC);
 
-    return { ok: true, w, h, q, areaIn2, sqftEach, rate, unitC, totalC };
+    return {
+      ok: true,
+      width: w,
+      height: h,
+      quantity: q,
+      actualAreaSqIn,
+      billableAreaSqIn,
+      areaSqFt,
+      ratePerSqFt,
+      finalTotalDollars,
+      finalTotalC
+    };
   }
 
   ["input", "change"].forEach((evt) => {
     widthIn.addEventListener(evt, calc);
     heightIn.addEventListener(evt, calc);
     qty.addEventListener(evt, calc);
-    form.addEventListener(evt, calc);
   });
 
-  // initial calc
   calc();
 })();
