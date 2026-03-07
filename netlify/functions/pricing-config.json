@@ -3,8 +3,8 @@
   "min_height": 1,
   "max_width": 24,
   "max_height": 24,
-  "minimum_billable_area_sq_in": 9,
-  "minimum_order_dollars": 27,
+  "minimum_billable_area_sq_in": 4,
+  "minimum_order_dollars": 36.95,
   "quantity_sqft_rates": {
     "25": 22,
     "50": 19,
