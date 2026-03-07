@@ -1,5 +1,7 @@
 // netlify/functions/pricing-table.js
 
+const PRICING_CURVES = require("./pricing-curves.json");
+
 // Allowed order quantities
 const ALLOWED_QUANTITIES = [25, 50, 100, 200, 300, 500, 1000];
 
@@ -55,13 +57,12 @@ function getSizeTier(width, height) {
     return null;
   }
 
-  const area = w * h;
+  const maxSide = Math.max(w, h);
 
-  if (area <= 9) return "small";
-  if (area <= 16) return "medium";
-  if (area <= 25) return "large";
-
-  return "xlarge";
+  if (maxSide <= 3) return "3x3";
+  if (maxSide <= 4) return "4x4";
+  if (maxSide <= 5) return "5x5";
+  return "6x6";
 }
 
 // Look up order total from table
@@ -77,7 +78,10 @@ function getPriceCents(width, height, quantity) {
     return null;
   }
 
-  return PRICING_TABLE[sizeTier]?.[qty] ?? null;
+const priceDollars = PRICING_CURVES[sizeTier]?.[qty];
+if (!priceDollars) return null;
+
+return Math.round(priceDollars * 100);
 }
 
 module.exports = {
