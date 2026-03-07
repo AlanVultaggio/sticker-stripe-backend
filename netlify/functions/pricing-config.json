@@ -1,0 +1,22 @@
+{
+  "min_width": 1,
+  "min_height": 1,
+  "max_width": 24,
+  "max_height": 24,
+  "minimum_billable_area_sq_in": 9,
+  "minimum_order_dollars": 27,
+  "quantity_sqft_rates": {
+    "25": 22,
+    "50": 19,
+    "100": 16,
+    "250": 13,
+    "500": 10.5,
+    "1000": 8.5,
+    "2500": 7,
+    "5000": 6
+  },
+  "large_size_adjustments": [
+    { "min_area_sq_in": 150, "multiplier": 0.65 },
+    { "min_area_sq_in": 300, "multiplier": 0.45 }
+  ]
+}
