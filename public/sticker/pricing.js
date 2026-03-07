@@ -9,7 +9,7 @@
     minHeight: 1,
     maxWidth: 24,
     maxHeight: 24,
-    minimumBillableAreaSqIn: 9,
+    minimumBillableAreaSqIn: 4,
     minimumOrderDollars: 36.95,
     quantitySqFtRates: {
       25: 22,
