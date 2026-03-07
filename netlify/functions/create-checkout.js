@@ -1,6 +1,6 @@
 // netlify/functions/create-checkout.js
 
-const { getPriceCents } = require("./pricing-table");
+const { calculateStickerOrder } = require("./pricing-engine");
 
 const DEFAULT_ORIGINS = [
   "https://www.unfoldingcreative.com",
@@ -106,11 +106,15 @@ exports.handler = async function (event) {
   const height = Number(payload.height);
   const quantity = Number(payload.quantity);
 
-  const totalCents = getPriceCents(width, height, quantity);
+const order = calculateStickerOrder(width, height, quantity);
 
-  if (!totalCents) {
-    return jsonResponse(400, corsHeaders, { error: "Invalid size or quantity" });
+if (!order) {
+  return jsonResponse(400, corsHeaders, {
+    error: "Invalid size or quantity",
+  });
 }
+
+const totalCents = order.finalTotalCents;
 
 console.log("pricing debug", {
   width,
