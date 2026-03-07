@@ -1,7 +1,5 @@
 // netlify/functions/create-checkout.js
 
-const { getPriceCents } = require("./pricing-table");
-
 const DEFAULT_ORIGINS = [
   "https://www.unfoldingcreative.com",
   "https://unfoldingcreative.com",
@@ -102,15 +100,10 @@ exports.handler = async function (event) {
     return jsonResponse(400, corsHeaders, { error: "Invalid JSON body" });
   }
 
-  const width = Number(payload.width);
-  const height = Number(payload.height);
-  const quantity = Number(payload.quantity);
-
-  const totalCents = getPriceCents(width, height, quantity);
-
-  if (!totalCents) {
-    return jsonResponse(400, corsHeaders, { error: "Invalid size or quantity" });
-}
+  const totalCents = Number.parseInt(payload.total_cents, 10);
+  if (!Number.isFinite(totalCents) || totalCents <= 0) {
+    return jsonResponse(400, corsHeaders, { error: "Invalid total_cents" });
+  }
 
   try {
     const Stripe = require("stripe");
