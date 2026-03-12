@@ -29,13 +29,70 @@ function json(statusCode, bodyObj) {
 function getRawBody(event) {
   if (!event) return "";
   if (event.isBase64Encoded) {
-    return Buffer.from(event.body || "", "base64"); // Buffer (best for Stripe verify)
+    return Buffer.from(event.body || "", "base64");
   }
-  return event.body || ""; // string
+  return event.body || "";
+}
+
+function formatMoneyFromCents(cents) {
+  const amount = Number(cents || 0);
+  return `$${(amount / 100).toFixed(2)}`;
+}
+
+function formatMoneyFromDollars(dollars) {
+  const amount = Number(dollars || 0);
+  return `$${amount.toFixed(2)}`;
+}
+
+function formatSize(width, height) {
+  const w = String(width || "").trim();
+  const h = String(height || "").trim();
+  if (!w || !h) return "";
+  return `${w}" × ${h}"`;
+}
+
+function formatShapeLabel(shape) {
+  const raw = String(shape || "").trim().toLowerCase();
+
+  const map = {
+    "square-rectangle": "Square / Rectangle",
+    "circle-oval": "Circle / Oval",
+    diecut: "Custom Kiss-Cut Shape",
+    "sticker-sheet": "Sticker Sheets",
+  };
+
+  return map[raw] || String(shape || "").trim();
+}
+
+function formatFinishLabel(finish) {
+  const raw = String(finish || "").trim().toLowerCase();
+
+  const map = {
+    gloss: "Gloss",
+    matte: "Matte",
+  };
+
+  return map[raw] || String(finish || "").trim();
+}
+
+function formatUploadSource(source) {
+  const raw = String(source || "").trim().toLowerCase();
+
+  const map = {
+    file_request_pro: "File Request Pro",
+    filerequestpro: "File Request Pro",
+    "file request pro": "File Request Pro",
+  };
+
+  return map[raw] || String(source || "").trim();
+}
+
+function maybeLine(label, value) {
+  const text = String(value || "").trim();
+  return text ? `${label}: ${text}` : null;
 }
 
 exports.handler = async (event) => {
-  // Handle preflight (not needed for Stripe, but safe)
   if (event.httpMethod === "OPTIONS") {
     return { statusCode: 204, headers: corsHeaders(), body: "" };
   }
@@ -44,13 +101,12 @@ exports.handler = async (event) => {
     return { statusCode: 405, headers: corsHeaders(), body: "Method Not Allowed" };
   }
 
-  // ---- ENV GUARDS ----
   const stripeSecret = process.env.STRIPE_SECRET_KEY;
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
   const resendKey = process.env.RESEND_API_KEY;
 
   const sheetUrl =
-    process.env.GOOGLE_SHEET_WEBAPP_URL || process.env.GOOGLE_SHEET_WEBHOOK; // support either name
+    process.env.GOOGLE_SHEET_WEBAPP_URL || process.env.GOOGLE_SHEET_WEBHOOK;
   const sheetSecret = process.env.GOOGLE_SHEET_SECRET;
 
   if (!stripeSecret) {
@@ -64,7 +120,6 @@ exports.handler = async (event) => {
 
   const stripe = new Stripe(stripeSecret);
 
-  // ---- STRIPE SIGNATURE VERIFY ----
   let stripeEvent;
   try {
     const sig =
@@ -84,13 +139,11 @@ exports.handler = async (event) => {
     return { statusCode: 400, body: `Webhook Error: ${err.message}` };
   }
 
-  // After signature verify succeeds, we ACK 200 even if internal steps fail (your preference).
   try {
     if (stripeEvent.type === "checkout.session.completed") {
       const session = stripeEvent.data.object;
 
       const sessionId = session.id;
-
       const amountTotal =
         typeof session.amount_total === "number" ? session.amount_total : 0;
       const dollars = (amountTotal / 100).toFixed(2);
@@ -101,8 +154,16 @@ exports.handler = async (event) => {
         "";
 
       const paymentStatus = session.payment_status || "(unknown)";
-
       const md = session.metadata || {};
+
+      const shapeLabel = formatShapeLabel(md.shape);
+      const finishLabel = formatFinishLabel(md.finish);
+      const sizeLabel = formatSize(md.width, md.height);
+      const uploadSource = formatUploadSource(md.upload_source) || "File Request Pro";
+
+      const productSubtotalCents = Number(md.product_subtotal_cents || 0);
+      const shippingCents = Number(md.shipping_cents || 0);
+      const totalCents = Number(md.total_cents || amountTotal || 0);
 
       console.log("✅ checkout.session.completed");
       console.log("Session:", sessionId);
@@ -110,35 +171,39 @@ exports.handler = async (event) => {
       console.log("Amount:", dollars);
       console.log("Payment status:", paymentStatus);
 
-      // 1) ---- INTERNAL EMAIL VIA RESEND ----
       if (!resendKey) {
         console.warn("RESEND_API_KEY missing — skipping internal email send.");
       } else {
         const subject = `New Sticker Order — $${dollars} (${paymentStatus})`;
 
-        const textBody = `New Sticker Order (Stripe)
+        const lines = [
+          `New Sticker Order (Stripe)`,
+          ``,
+          maybeLine("Project", md.jobName || "Sticker Order"),
+          maybeLine("Customer", customerEmail || "(not provided)"),
+          maybeLine("Payment Status", paymentStatus),
+          ``,
+          maybeLine("Product", shapeLabel),
+          maybeLine("Size", sizeLabel),
+          maybeLine("Quantity", md.quantity || ""),
+          maybeLine("Finish", finishLabel),
+          maybeLine("Delivery", md.delivery_label || ""),
+          maybeLine("Shipping", shippingCents === 0 ? "Free" : formatMoneyFromCents(shippingCents)),
+          maybeLine("Upload", uploadSource),
+          ``,
+          maybeLine("Subtotal", productSubtotalCents ? formatMoneyFromCents(productSubtotalCents) : ""),
+          maybeLine("Shipping", shippingCents === 0 ? "Free" : formatMoneyFromCents(shippingCents)),
+          maybeLine("Total", totalCents ? formatMoneyFromCents(totalCents) : formatMoneyFromDollars(dollars)),
+          ``,
+          maybeLine("Notes", md.notes || "—"),
+          ``,
+          `Internal`,
+          maybeLine("Shape code", md.shape || ""),
+          maybeLine("Session ID", sessionId),
+          maybeLine("Created", new Date((session.created || 0) * 1000).toISOString()),
+        ].filter(Boolean);
 
-Session ID: ${sessionId}
-Customer Email: ${customerEmail || "(not provided)"}
-Amount: $${dollars}
-Payment Status: ${paymentStatus}
-
-Job Name: ${md.jobName || ""}
-Size: ${md.width || ""} x ${md.height || ""} in
-Quantity: ${md.quantity || ""}
-
-Shape: ${md.shape || ""}
-Lamination: ${md.lamination || ""}
-Material: ${md.material || ""}
-
-Rush: ${md.rush || ""}
-Notes: ${md.notes || ""}
-
-Unit cents: ${md.unit_cents || ""}
-Total cents: ${md.total_cents || ""}
-
-Created: ${new Date((session.created || 0) * 1000).toISOString()}
-`;
+        const textBody = lines.join("\n");
 
         const resendResp = await fetch("https://api.resend.com/emails", {
           method: "POST",
@@ -165,7 +230,6 @@ Created: ${new Date((session.created || 0) * 1000).toISOString()}
         }
       }
 
-      // 2) ---- LOG TO GOOGLE SHEETS ----
       if (!sheetUrl || !sheetSecret) {
         console.warn(
           "Google Sheet logging skipped — missing GOOGLE_SHEET_WEBAPP_URL/GOOGLE_SHEET_SECRET"
@@ -190,6 +254,11 @@ Created: ${new Date((session.created || 0) * 1000).toISOString()}
               total_cents: md.total_cents || "",
 
               shape: md.shape || "",
+              finish: md.finish || "",
+              delivery_label: md.delivery_label || "",
+              shipping_cents: md.shipping_cents || "",
+              upload_source: md.upload_source || "",
+
               lamination: md.lamination || "",
               material: md.material || "",
 
