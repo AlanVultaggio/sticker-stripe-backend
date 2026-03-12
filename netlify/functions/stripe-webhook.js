@@ -180,6 +180,14 @@ exports.handler = async (event) => {
         session?.customer_email ||
         "";
 
+      const customerName =
+        session?.customer_details?.name ||
+        "";
+
+      const customerPhone =
+        session?.customer_details?.phone ||
+        "";
+
       const paymentStatus = session.payment_status || "(unknown)";
       const md = session.metadata || {};
 
@@ -207,34 +215,54 @@ exports.handler = async (event) => {
         const subject = `New Sticker Order — $${dollars} (${paymentStatus})`;
 
         const lines = [
-          `New Sticker Order (Stripe)`,
-          ``,
-          maybeLine("Project", md.jobName || "Sticker Order"),
-          maybeLine("Customer", customerEmail || "(not provided)"),
-          maybeLine("Payment Status", paymentStatus),
-          ``,
-          maybeLine("Product", shapeLabel),
-          maybeLine("Size", sizeLabel),
-          maybeLine("Quantity", md.quantity || ""),
-          maybeLine("Finish", finishLabel),
-          maybeLine("Delivery", md.delivery_label || ""),
-          maybeLine("Shipping", shippingCents === 0 ? "Free" : formatMoneyFromCents(shippingCents)),
-          maybeLine("Upload", uploadSource),
-          ``,
-          ...(shippingAddressLines.length
-            ? ["Shipping Address", ...shippingAddressLines, ``]
-            : []),
-          maybeLine("Subtotal", productSubtotalCents ? formatMoneyFromCents(productSubtotalCents) : ""),
-          maybeLine("Shipping", shippingCents === 0 ? "Free" : formatMoneyFromCents(shippingCents)),
-          maybeLine("Total", totalCents ? formatMoneyFromCents(totalCents) : formatMoneyFromDollars(dollars)),
-          ``,
-          maybeLine("Notes", md.notes || "—"),
-          ``,
-          `Internal`,
-          maybeLine("Shape code", md.shape || ""),
-          maybeLine("Session ID", sessionId),
-          maybeLine("Created", new Date((session.created || 0) * 1000).toISOString()),
-        ].filter(Boolean);
+  `New Sticker Order (Stripe)`,
+  ``,
+
+  `PROJECT`,
+  md.jobName || "Sticker Order",
+  ``,
+
+  `CUSTOMER`,
+  customerName || "(not provided)",
+  customerEmail || "",
+  customerPhone || "",
+  ``,
+
+  ...(shippingAddressLines.length
+    ? ["SHIPPING ADDRESS", ...shippingAddressLines, ``]
+    : []),
+
+  `PRODUCT`,
+  shapeLabel,
+  sizeLabel,
+  `Qty: ${md.quantity || ""}`,
+  `Finish: ${finishLabel}`,
+  ``,
+
+  `DELIVERY`,
+  md.delivery_label || "",
+  shippingCents === 0 ? "Free Pickup" : formatMoneyFromCents(shippingCents),
+  ``,
+
+  `UPLOAD`,
+  uploadSource,
+  ``,
+
+  `PRICING`,
+  `Subtotal: ${productSubtotalCents ? formatMoneyFromCents(productSubtotalCents) : ""}`,
+  `Shipping: ${shippingCents === 0 ? "Free" : formatMoneyFromCents(shippingCents)}`,
+  `Total: ${totalCents ? formatMoneyFromCents(totalCents) : formatMoneyFromDollars(dollars)}`,
+  ``,
+
+  `NOTES`,
+  md.notes || "—",
+  ``,
+
+  `INTERNAL`,
+  `Shape code: ${md.shape || ""}`,
+  `Session ID: ${sessionId}`,
+  `Created: ${new Date((session.created || 0) * 1000).toISOString()}`
+].filter(Boolean);
 
         const textBody = lines.join("\n");
 
@@ -292,7 +320,7 @@ exports.handler = async (event) => {
               shipping_cents: md.shipping_cents || "",
               upload_source: md.upload_source || "",
 
-              lamination: md.lamination || "",
+              lamination: md.lamination || md.finish || "",
               material: md.material || "",
 
               rush: md.rush || "",
