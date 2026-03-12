@@ -1,0 +1,129 @@
+<div class="sticker-order ui-wrap" id="stickerOrder">
+  <h2 class="order-title">Customize Your Sticker</h2>
+
+  <form
+    name="sticker-order"
+    method="POST"
+    data-netlify="true"
+    netlify-honeypot="bot-field"
+    id="stickerOrderForm"
+  >
+    <input type="hidden" name="form-name" value="sticker-order" />
+    <p class="hidden">
+      <label>Don’t fill this out: <input name="bot-field" /></label>
+    </p>
+
+    <div class="order-layout">
+      <div class="order-main">
+        <section class="panel">
+          <h3 class="panel-title">Sticker Details</h3>
+
+          <div class="field-row">
+            <label for="projectName">Sticker Project Name</label>
+            <input id="projectName" name="project_name" type="text" placeholder="e.g. Logo Stickers" />
+          </div>
+
+          <div class="field-row">
+            <label for="shape">Shape</label>
+            <select id="shape" name="shape">
+              <option value="square-rectangle">Square / Rectangle</option>
+              <option value="circle-oval">Circle / Oval</option>
+              <option value="diecut">Custom Kiss-Cut Shape</option>
+            </select>
+          </div>
+
+          <div class="field-row two-col">
+            <div>
+              <label for="widthIn">Width (in)</label>
+              <input id="widthIn" name="width_in" type="number" min="1" max="24" step="0.01" value="1" />
+            </div>
+            <div>
+              <label for="heightIn">Height (in)</label>
+              <input id="heightIn" name="height_in" type="number" min="1" max="24" step="0.01" value="1" />
+            </div>
+          </div>
+
+          <p class="field-help">
+            (Min. Size 1" - Max. size: 24" Contact us for Larger/Custom Sizes.)
+          </p>
+
+          <div class="field-row two-col">
+            <div>
+              <label for="quantity">Quantity</label>
+              <select id="quantity" name="quantity">
+                <option value="25">25</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+                <option value="250">250</option>
+                <option value="500">500</option>
+                <option value="1000">1000</option>
+                <option value="2500">2500</option>
+                <option value="5000">5000</option>
+              </select>
+            </div>
+
+            <div>
+              <label for="finish">Finish</label>
+              <select id="finish" name="finish">
+                <option value="gloss" selected>Gloss</option>
+                <option value="matte">Matte</option>
+              </select>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h3 class="panel-title">Upload Your Artwork</h3>
+
+          <div id="filerequestpro" data-url-slug="file-upload" style="margin:auto; min-width:100px; height:475px;"></div>
+          <script src="https://filerequestpro.com/embedv2.js"></script>
+        </section>
+      </div>
+
+      <aside class="order-sidebar">
+        <div class="summary-card">
+          <div class="summary-eyebrow">Live Estimate</div>
+          <div class="summary-total" id="estimateTotal">$—</div>
+          <div class="summary-unit" id="estimateUnit">$— per sticker</div>
+
+          <hr class="summary-divider" />
+
+          <div class="summary-row">
+            <span>Size</span>
+            <strong id="summarySize">—</strong>
+          </div>
+          <div class="summary-row">
+            <span>Quantity</span>
+            <strong id="summaryQty">—</strong>
+          </div>
+          <div class="summary-row">
+            <span>Finish</span>
+            <strong id="summaryFinish">—</strong>
+          </div>
+
+          <p class="summary-note" id="summaryNote">
+            Pricing updates instantly as you change size and quantity.
+          </p>
+
+<div class="price-row" aria-live="polite" style="display:none;">
+  <div>Price per unit: <strong id="ppu">$—</strong></div>
+  <div>TOTAL: <strong id="total">$—</strong></div>
+</div>
+
+          <input type="hidden" name="unit_price_cents" id="unitPriceCents" value="" />
+          <input type="hidden" name="total_cents" id="totalCents" value="" />
+
+          <button type="button" class="btn-checkout" id="checkoutBtn">Checkout</button>
+          <p class="center small" id="checkoutStatus"></p>
+        </div>
+      </aside>
+    </div>
+  </form>
+</div>
+
+<script>
+  window.UC_USE_NETLIFY_JS = true;
+</script>
+
+<script defer src="https://sticker-stripe-backend.netlify.app/sticker/pricing.js"></script>
+<script defer src="https://sticker-stripe-backend.netlify.app/sticker/orderstickers.js"></script>

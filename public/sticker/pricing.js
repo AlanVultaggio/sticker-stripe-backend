@@ -11,6 +11,7 @@
     maxHeight: 24,
     minimumBillableAreaSqIn: 4,
     minimumOrderDollars: 36.95,
+    flatRateShippingCents: 895,
     quantitySqFtRates: {
       25: 22,
       50: 19,
@@ -27,13 +28,15 @@
       { minAreaSqIn: 36, multiplier: 0.375 },
       { minAreaSqIn: 64, multiplier: 0.3025 },
       { minAreaSqIn: 121, multiplier: 0.32 }
-   ]
+    ]
   };
 
   const form = el("stickerOrderForm");
   const widthIn = el("widthIn");
   const heightIn = el("heightIn");
   const qty = el("quantity");
+  const finish = el("finish");
+  const deliveryMethod = el("deliveryMethod");
 
   const ppu = el("ppu");
   const total = el("total");
@@ -41,12 +44,29 @@
   const estimateTotal = el("estimateTotal");
   const estimateUnit = el("estimateUnit");
 
+  const summarySize = el("summarySize");
+  const summaryQty = el("summaryQty");
+  const summaryFinish = el("summaryFinish");
+  const summaryDelivery = el("summaryDelivery");
+  const summaryShipping = el("summaryShipping");
+
   const unitPriceCents = el("unitPriceCents");
   const totalCents = el("totalCents");
+  const shippingCents = el("shippingCents");
+  const deliveryLabel = el("deliveryLabel");
 
   const statusEl = el("checkoutStatus");
 
-  if (!form || !widthIn || !heightIn || !qty || !ppu || !total || !unitPriceCents || !totalCents) {
+  if (
+    !form ||
+    !widthIn ||
+    !heightIn ||
+    !qty ||
+    !ppu ||
+    !total ||
+    !unitPriceCents ||
+    !totalCents
+  ) {
     return;
   }
 
@@ -54,13 +74,43 @@
     return n.toLocaleString(undefined, { style: "currency", currency: "USD" });
   }
 
+  function getShippingCents() {
+    if (!deliveryMethod) return CONFIG.flatRateShippingCents;
+    return deliveryMethod.value === "pickup" ? 0 : CONFIG.flatRateShippingCents;
+  }
+
+  function getDeliveryLabel() {
+    if (!deliveryMethod) return "Standard Shipping";
+    return deliveryMethod.value === "pickup" ? "Local Pickup" : "Standard Shipping";
+  }
+
+  function updateDeliverySummary() {
+    const shipping = getShippingCents();
+    const delivery = getDeliveryLabel();
+
+    if (summaryDelivery) summaryDelivery.textContent = delivery;
+    if (summaryShipping) summaryShipping.textContent = shipping === 0 ? "Free" : dollars(shipping / 100);
+    if (shippingCents) shippingCents.value = String(shipping);
+    if (deliveryLabel) deliveryLabel.value = delivery;
+  }
+
   function clearDisplay(message) {
+    updateDeliverySummary();
+
     ppu.textContent = "$—";
     total.textContent = "$—";
     if (estimateTotal) estimateTotal.textContent = "$—";
     if (estimateUnit) estimateUnit.textContent = "$— per sticker";
+
     unitPriceCents.value = "";
     totalCents.value = "";
+
+    if (summarySize) summarySize.textContent = "—";
+    if (summaryQty) summaryQty.textContent = "—";
+    if (summaryFinish && finish) {
+      summaryFinish.textContent = finish.options[finish.selectedIndex]?.text || finish.value;
+    }
+
     if (statusEl && message) statusEl.textContent = message;
   }
 
@@ -102,12 +152,19 @@
 
     if (statusEl) statusEl.textContent = "";
 
+    updateDeliverySummary();
+
     if (!w || !h || !q) {
       clearDisplay("");
       return { ok: false };
     }
 
-    if (w < CONFIG.minWidth || w > CONFIG.maxWidth || h < CONFIG.minHeight || h > CONFIG.maxHeight) {
+    if (
+      w < CONFIG.minWidth ||
+      w > CONFIG.maxWidth ||
+      h < CONFIG.minHeight ||
+      h > CONFIG.maxHeight
+    ) {
       clearDisplay(`Size must be between ${CONFIG.minWidth}" and ${CONFIG.maxWidth}".`);
       return { ok: false };
     }
@@ -128,22 +185,35 @@
       return { ok: false };
     }
 
-    const rawTotalDollars = areaSqFt * q * ratePerSqFt;
-    const finalTotalDollars = Math.max(rawTotalDollars, CONFIG.minimumOrderDollars);
-    const finalTotalC = Math.round(finalTotalDollars * 100);
-    const unitC = Math.max(1, Math.round(finalTotalC / q));
+    const rawProductSubtotalDollars = areaSqFt * q * ratePerSqFt;
+    const productSubtotalDollars = Math.max(rawProductSubtotalDollars, CONFIG.minimumOrderDollars);
+    const productSubtotalCents = Math.round(productSubtotalDollars * 100);
+
+    const unitC = Math.max(1, Math.round(productSubtotalCents / q));
+
+    const shipping = getShippingCents();
+    const finalTotalCents = productSubtotalCents + shipping;
 
     ppu.textContent = dollars(unitC / 100);
-    total.textContent = dollars(finalTotalC / 100);
-    if (estimateTotal) estimateTotal.textContent = dollars(finalTotalC / 100);
-    if (estimateUnit) estimateUnit.textContent = `${dollars(unitC / 100)} per sticker`;
+    total.textContent = dollars(finalTotalCents / 100);
+
+    if (estimateTotal) estimateTotal.textContent = dollars(finalTotalCents / 100);
+    if (estimateUnit) {
+      estimateUnit.textContent =
+        shipping > 0
+          ? `${dollars(unitC / 100)} per sticker + ${dollars(shipping / 100)} shipping`
+          : `${dollars(unitC / 100)} per sticker`;
+    }
+
     if (summarySize) summarySize.textContent = `${w}" × ${h}"`;
     if (summaryQty) summaryQty.textContent = String(q);
+
     if (summaryFinish && finish) {
       summaryFinish.textContent = finish.options[finish.selectedIndex]?.text || finish.value;
     }
+
     unitPriceCents.value = String(unitC);
-    totalCents.value = String(finalTotalC);
+    totalCents.value = String(finalTotalCents);
 
     return {
       ok: true,
@@ -154,8 +224,10 @@
       billableAreaSqIn,
       areaSqFt,
       ratePerSqFt,
-      finalTotalDollars,
-      finalTotalC
+      productSubtotalDollars,
+      productSubtotalCents,
+      shippingCents: shipping,
+      finalTotalCents
     };
   }
 
@@ -163,7 +235,9 @@
     widthIn.addEventListener(evt, calc);
     heightIn.addEventListener(evt, calc);
     qty.addEventListener(evt, calc);
+
     if (finish) finish.addEventListener(evt, calc);
+    if (deliveryMethod) deliveryMethod.addEventListener(evt, calc);
   });
 
   calc();

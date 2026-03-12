@@ -4,7 +4,7 @@
 
   const el = (id) => document.getElementById(id);
 
-  // ✅ Netlify backend domain (NOT unfoldingcreative.com)
+  // Netlify backend domain
   const NETLIFY_BASE = "https://sticker-stripe-backend.netlify.app";
 
   function init() {
@@ -16,12 +16,18 @@
     const unitPriceCentsEl = el("unitPriceCents");
     const totalCentsEl = el("totalCents");
 
+    const shippingCentsEl = el("shippingCents");
+    const deliveryMethodEl = el("deliveryMethod");
+    const deliveryLabelEl = el("deliveryLabel");
+
     const statusEl = el("checkoutStatus");
     const checkoutBtn = el("checkoutBtn");
 
     if (
       !form || !widthInEl || !heightInEl || !qtyEl ||
-      !unitPriceCentsEl || !totalCentsEl || !statusEl || !checkoutBtn
+      !unitPriceCentsEl || !totalCentsEl ||
+      !shippingCentsEl || !deliveryMethodEl || !deliveryLabelEl ||
+      !statusEl || !checkoutBtn
     ) return;
 
     checkoutBtn.addEventListener("click", async () => {
@@ -33,6 +39,13 @@
 
       const unitC = parseInt(unitPriceCentsEl.value || "0", 10);
       const totalC = parseInt(totalCentsEl.value || "0", 10);
+      const shippingC = parseInt(shippingCentsEl.value || "0", 10);
+
+      const deliveryMethod = deliveryMethodEl.value || "shipping";
+      const deliveryLabel = deliveryLabelEl.value || "Standard Shipping";
+
+      const productSubtotalC = unitC * q;
+      const expectedFinalTotalC = productSubtotalC + shippingC;
 
       if (!w || !h || !q || !unitC || !totalC) {
         statusEl.textContent = "Please enter width, height, and quantity.";
@@ -56,12 +69,16 @@
             height: h,
             quantity: q,
 
-            // function can use either:
-            total: Number((totalC / 100).toFixed(2)), // dollars
-            total_cents: totalC,
             unit_cents: unitC,
+            product_subtotal_cents: productSubtotalC,
+            shipping_cents: shippingC,
+            total_cents: expectedFinalTotalC,
 
-            // metadata
+            total: Number((expectedFinalTotalC / 100).toFixed(2)),
+
+            delivery_method: deliveryMethod,
+            delivery_label: deliveryLabel,
+
             jobName: data.project_name || "",
             order: data,
             upload_source: "File Request Pro",

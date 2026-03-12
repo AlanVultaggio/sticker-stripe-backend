@@ -9,6 +9,7 @@ const DEFAULT_ORIGINS = [
 ];
 
 const DEFAULT_ORIGIN = "https://www.unfoldingcreative.com";
+const FLAT_RATE_SHIPPING_CENTS = 895;
 
 function normalizeOrigin(origin) {
   return String(origin || "").trim().replace(/\/$/, "");
@@ -106,22 +107,35 @@ exports.handler = async function (event) {
   const height = Number(payload.height);
   const quantity = Number(payload.quantity);
 
-const order = calculateStickerOrder(width, height, quantity);
+  const order = calculateStickerOrder(width, height, quantity);
 
-if (!order) {
-  return jsonResponse(400, corsHeaders, {
-    error: "Invalid size or quantity",
+  if (!order) {
+    return jsonResponse(400, corsHeaders, {
+      error: "Invalid size or quantity"
+    });
+  }
+
+  const normalizedDeliveryMethod =
+    payload.delivery_method === "pickup" ? "pickup" : "shipping";
+
+  const normalizedDeliveryLabel =
+    normalizedDeliveryMethod === "pickup" ? "Local Pickup" : "Standard Shipping";
+
+  const shippingCents =
+    normalizedDeliveryMethod === "pickup" ? 0 : FLAT_RATE_SHIPPING_CENTS;
+
+  const productSubtotalCents = order.finalTotalCents;
+  const finalTotalCents = productSubtotalCents + shippingCents;
+
+  console.log("pricing debug", {
+    width,
+    height,
+    quantity,
+    productSubtotalCents,
+    shippingCents,
+    finalTotalCents,
+    delivery_method: normalizedDeliveryMethod
   });
-}
-
-const totalCents = order.finalTotalCents;
-
-console.log("pricing debug", {
-  width,
-  height,
-  quantity,
-  totalCents
-});
 
   try {
     const Stripe = require("stripe");
@@ -135,34 +149,75 @@ console.log("pricing debug", {
       process.env.CHECKOUT_CANCEL_URL ||
       `${DEFAULT_ORIGIN}/sticker-order?checkout=cancel`;
 
+    const shape =
+      (payload.order && payload.order.shape) ||
+      payload.shape ||
+      "";
+
+    const finish =
+      (payload.order && payload.order.finish) ||
+      payload.finish ||
+      "";
+
+    const projectName =
+      payload.jobName ||
+      (payload.order && payload.order.project_name) ||
+      "";
+
+    const productDescriptionParts = [
+      shape || "Custom Sticker",
+      `${String(payload.width || "?")}x${String(payload.height || "?")} in`,
+      `Qty ${String(payload.quantity || "?")}`,
+      finish || ""
+    ].filter(Boolean);
+
+    const lineItems = [
+      {
+        price_data: {
+          currency: "usd",
+          product_data: {
+            name: "Custom Sticker Order",
+            description: projectName || productDescriptionParts.join(" • ")
+          },
+          unit_amount: productSubtotalCents
+        },
+        quantity: 1
+      }
+    ];
+
+    if (shippingCents > 0) {
+      lineItems.push({
+        price_data: {
+          currency: "usd",
+          product_data: {
+            name: normalizedDeliveryLabel,
+            description: "Flat rate per order"
+          },
+          unit_amount: shippingCents
+        },
+        quantity: 1
+      });
+    }
+
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       success_url: successUrl,
       cancel_url: cancelUrl,
-      line_items: [
-        {
-          price_data: {
-            currency: "usd",
-            product_data: {
-              name: "Custom Sticker Order",
-              description:
-                payload.jobName ||
-                `${String(payload.width || "?")}x${String(payload.height || "?")} in`
-            },
-            unit_amount: totalCents
-          },
-          quantity: 1
-        }
-      ],
+      line_items: lineItems,
       metadata: {
         width: String(payload.width || ""),
         height: String(payload.height || ""),
         quantity: String(payload.quantity || ""),
         unit_cents: String(payload.unit_cents || ""),
-        total_cents: String(payload.total_cents || ""),
-        jobName: String(payload.jobName || ""),
+        product_subtotal_cents: String(productSubtotalCents),
+        shipping_cents: String(shippingCents),
+        total_cents: String(finalTotalCents),
+        delivery_method: normalizedDeliveryMethod,
+        delivery_label: normalizedDeliveryLabel,
+        jobName: String(projectName || ""),
         upload_source: String(payload.upload_source || ""),
-        shape: String(payload.shape || ""),
+        shape: String(shape || ""),
+        finish: String(finish || ""),
         lamination: String(payload.lamination || ""),
         material: String(payload.material || ""),
         rush: String(payload.rush || ""),

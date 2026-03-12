@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<title>Sticker Pricing Test</title>
+</head>
+
+<body>
+
+<h2>Sticker Pricing Test</h2>
+
+<label>Width</label>
+<input id="width" type="number" value="3">
+
+<br><br>
+
+<label>Height</label>
+<input id="height" type="number" value="3">
+
+<br><br>
+
+<label>Quantity</label>
+<input id="qty" type="number" value="100">
+
+<br><br>
+
+<button onclick="getPrice()">Calculate</button>
+
+<h3 id="price"></h3>
+
+<script>
+
+function getPrice(){
+
+const width = Number(document.getElementById("width").value)
+const height = Number(document.getElementById("height").value)
+const qty = Number(document.getElementById("qty").value)
+
+const area = width * height
+const sqft = area / 144
+let rate = 16
+
+if (area >= 16) {
+rate = 16 * 0.62
+}
+
+if (area >= 25) {
+rate = 16 * 0.45
+}
+
+if (area >= 36) {
+rate = 16 * 0.375
+}
+
+if (area >= 64) {
+rate = 16 * 0.3025
+}
+
+const total = sqft * qty * rate
+
+document.getElementById("price").innerText =
+"$" + total.toFixed(2)
+
+}
+
+</script>
+
+</body>
+
+</html>
