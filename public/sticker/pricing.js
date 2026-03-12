@@ -22,9 +22,12 @@
       5000: 6
     },
     largeSizeAdjustments: [
-      { minAreaSqIn: 150, multiplier: 0.65 },
-      { minAreaSqIn: 300, multiplier: 0.45 }
-    ]
+      { minAreaSqIn: 16, multiplier: 0.62 },
+      { minAreaSqIn: 24, multiplier: 0.45 },
+      { minAreaSqIn: 36, multiplier: 0.375 },
+      { minAreaSqIn: 64, multiplier: 0.3025 },
+      { minAreaSqIn: 121, multiplier: 0.32 }
+   ]
   };
 
   const form = el("stickerOrderForm");
