@@ -15,6 +15,17 @@ function normalizeOrigin(origin) {
   return String(origin || "").trim().replace(/\/$/, "");
 }
 
+function getShapeProductName(shape) {
+  const map = {
+    "square-rectangle": "Square / Rectangle Stickers",
+    "circle-oval": "Circle / Oval Stickers",
+    diecut: "Custom Kiss-Cut Stickers",
+    "sticker-sheet": "Sticker Sheets"
+  };
+
+  return map[String(shape || "").toLowerCase()] || "Custom Stickers";
+}
+
 function getAllowedOrigins() {
   const originsEnv = process.env.ALLOWED_ORIGINS;
   const source = originsEnv ? originsEnv : DEFAULT_ORIGINS.join(",");
@@ -164,8 +175,9 @@ exports.handler = async function (event) {
       (payload.order && payload.order.project_name) ||
       "";
 
+    const productName = getShapeProductName(shape);
+
     const productDescriptionParts = [
-      shape || "Custom Sticker",
       `${String(payload.width || "?")}x${String(payload.height || "?")} in`,
       `Qty ${String(payload.quantity || "?")}`,
       finish || ""
@@ -176,7 +188,7 @@ exports.handler = async function (event) {
         price_data: {
           currency: "usd",
           product_data: {
-            name: "Custom Sticker Order",
+            name: productName,
             description: projectName || productDescriptionParts.join(" • ")
           },
           unit_amount: productSubtotalCents
