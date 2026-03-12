@@ -215,7 +215,13 @@ exports.handler = async function (event) {
       mode: "payment",
       success_url: successUrl,
       cancel_url: cancelUrl,
+
+      shipping_address_collection: {
+      allowed_countries: ["US"]
+      },
+      
       line_items: lineItems,
+      
       metadata: {
         width: String(payload.width || ""),
         height: String(payload.height || ""),

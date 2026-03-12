@@ -92,6 +92,33 @@ function maybeLine(label, value) {
   return text ? `${label}: ${text}` : null;
 }
 
+function getShippingDetails(session) {
+  return session?.shipping_details || null;
+}
+
+function formatAddressLines(shippingDetails) {
+  const name = String(shippingDetails?.name || "").trim();
+  const address = shippingDetails?.address || {};
+
+  const line1 = String(address.line1 || "").trim();
+  const line2 = String(address.line2 || "").trim();
+  const city = String(address.city || "").trim();
+  const state = String(address.state || "").trim();
+  const postalCode = String(address.postal_code || "").trim();
+  const country = String(address.country || "").trim();
+
+  const cityLine = [city, state].filter(Boolean).join(", ");
+  const cityStatePostal = [cityLine, postalCode].filter(Boolean).join(" ");
+
+  return [
+    name,
+    line1,
+    line2,
+    cityStatePostal,
+    country,
+  ].filter(Boolean);
+}
+
 exports.handler = async (event) => {
   if (event.httpMethod === "OPTIONS") {
     return { statusCode: 204, headers: corsHeaders(), body: "" };
@@ -156,6 +183,9 @@ exports.handler = async (event) => {
       const paymentStatus = session.payment_status || "(unknown)";
       const md = session.metadata || {};
 
+      const shippingDetails = getShippingDetails(session);
+      const shippingAddressLines = formatAddressLines(shippingDetails);
+
       const shapeLabel = formatShapeLabel(md.shape);
       const finishLabel = formatFinishLabel(md.finish);
       const sizeLabel = formatSize(md.width, md.height);
@@ -191,6 +221,9 @@ exports.handler = async (event) => {
           maybeLine("Shipping", shippingCents === 0 ? "Free" : formatMoneyFromCents(shippingCents)),
           maybeLine("Upload", uploadSource),
           ``,
+          ...(shippingAddressLines.length
+            ? ["Shipping Address", ...shippingAddressLines, ``]
+            : []),
           maybeLine("Subtotal", productSubtotalCents ? formatMoneyFromCents(productSubtotalCents) : ""),
           maybeLine("Shipping", shippingCents === 0 ? "Free" : formatMoneyFromCents(shippingCents)),
           maybeLine("Total", totalCents ? formatMoneyFromCents(totalCents) : formatMoneyFromDollars(dollars)),
