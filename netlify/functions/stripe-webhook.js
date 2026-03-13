@@ -300,32 +300,88 @@ exports.handler = async (event) => {
           const payload = {
             secret: sheetSecret,
             contents: {
-              order_id: sessionId,
-              customer_email: customerEmail || "",
-              amount_total: dollars,
-              currency: (session.currency || "usd").toUpperCase(),
-              status: paymentStatus,
 
-              job_name: md.jobName || "",
-              width: md.width || "",
-              height: md.height || "",
-              quantity: md.quantity || "",
+  /* ---------- CORE STRIPE DATA ---------- */
 
-              unit_cents: md.unit_cents || "",
-              total_cents: md.total_cents || "",
+  order_id: sessionId,
+  checkout_session_id: sessionId,
+  stripe_event_id: stripeEvent.id || "",
+  payment_intent_id: session.payment_intent || "",
+  mode: session.mode || "",
 
-              shape: md.shape || "",
-              finish: md.finish || "",
-              delivery_label: md.delivery_label || "",
-              shipping_cents: md.shipping_cents || "",
-              upload_source: md.upload_source || "",
 
-              lamination: md.lamination || md.finish || "",
-              material: md.material || "",
+  /* ---------- PAYMENT ---------- */
 
-              rush: md.rush || "",
-              notes: md.notes || "",
-            },
+  amount_total: dollars,
+  currency: (session.currency || "usd").toUpperCase(),
+  status: paymentStatus,
+  order_status: paymentStatus,
+
+
+  /* ---------- CUSTOMER ---------- */
+
+  customer_email: customerEmail || "",
+  customer_name: customerName || "",
+  phone: customerPhone || "",
+
+
+  /* ---------- JOB INFO ---------- */
+
+  job_name: md.jobName || "",
+
+
+  /* ---------- SIZE ---------- */
+
+  width: md.width || "",
+  height: md.height || "",
+  width_in: md.width || "",
+  height_in: md.height || "",
+
+
+  /* ---------- QUANTITY / PRICING ---------- */
+
+  quantity: md.quantity || "",
+  unit_cents: md.unit_cents || "",
+  total_cents: md.total_cents || "",
+
+
+  /* ---------- PRODUCT OPTIONS ---------- */
+
+  shape: md.shape || "",
+  finish: md.finish || "",
+  lamination: md.lamination || md.finish || "",
+  material: md.material || "",
+  rush: md.rush || "",
+
+
+  /* ---------- FILE UPLOAD ---------- */
+
+  upload_source: md.upload_source || "",
+  upload_url: md.upload_url || md.upload_source || "",
+  upload_confirmed: md.upload_confirmed || "",
+
+
+  /* ---------- PREFLIGHT / PROOF ---------- */
+
+  proof_required: md.proof_required || "",
+
+
+  /* ---------- DELIVERY ---------- */
+
+  delivery_label: md.delivery_label || "",
+  shipping_cents: md.shipping_cents || "",
+
+
+  /* ---------- NOTES ---------- */
+
+  notes: md.notes || "",
+
+
+  /* ---------- DEBUG / ORIGIN ---------- */
+
+  source_origin: "stripe-webhook"
+
+}
           };
 
           const sheetResp = await fetch(sheetUrl, {
