@@ -12,6 +12,7 @@
     minimumBillableAreaSqIn: 4,
     minimumOrderDollars: 36.95,
     flatRateShippingCents: 895,
+    freeShippingThresholdCents: 7500,
     quantitySqFtRates: {
       25: 22,
       50: 19,
@@ -74,9 +75,18 @@
     return n.toLocaleString(undefined, { style: "currency", currency: "USD" });
   }
 
-  function getShippingCents() {
-    if (!deliveryMethod) return CONFIG.flatRateShippingCents;
-    return deliveryMethod.value === "pickup" ? 0 : CONFIG.flatRateShippingCents;
+  function getShippingCents(productSubtotalCents) {
+    if (!deliveryMethod) {
+      return (productSubtotalCents || 0) >= CONFIG.freeShippingThresholdCents
+        ? 0
+        : CONFIG.flatRateShippingCents;
+    }
+
+    if (deliveryMethod.value === "pickup") return 0;
+
+    return (productSubtotalCents || 0) >= CONFIG.freeShippingThresholdCents
+      ? 0
+      : CONFIG.flatRateShippingCents;
   }
 
   function getDeliveryLabel() {
@@ -84,8 +94,8 @@
     return deliveryMethod.value === "pickup" ? "Local Pickup" : "Standard Shipping";
   }
 
-  function updateDeliverySummary() {
-    const shipping = getShippingCents();
+  function updateDeliverySummary(productSubtotalCents) {
+    const shipping = getShippingCents(productSubtotalCents);
     const delivery = getDeliveryLabel();
 
     if (summaryDelivery) summaryDelivery.textContent = delivery;
@@ -95,7 +105,7 @@
   }
 
   function clearDisplay(message) {
-    updateDeliverySummary();
+    updateDeliverySummary(0);
 
     ppu.textContent = "$—";
     total.textContent = "$—";
@@ -152,8 +162,6 @@
 
     if (statusEl) statusEl.textContent = "";
 
-    updateDeliverySummary();
-
     if (!w || !h || !q) {
       clearDisplay("");
       return { ok: false };
@@ -191,8 +199,10 @@
 
     const unitC = Math.max(1, Math.round(productSubtotalCents / q));
 
-    const shipping = getShippingCents();
+    const shipping = getShippingCents(productSubtotalCents);
     const finalTotalCents = productSubtotalCents + shipping;
+
+    updateDeliverySummary(productSubtotalCents);
 
     ppu.textContent = dollars(unitC / 100);
     total.textContent = dollars(finalTotalCents / 100);
