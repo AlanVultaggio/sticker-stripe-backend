@@ -10,6 +10,7 @@ const DEFAULT_ORIGINS = [
 
 const DEFAULT_ORIGIN = "https://www.unfoldingcreative.com";
 const FLAT_RATE_SHIPPING_CENTS = 895;
+const FREE_SHIPPING_THRESHOLD_CENTS = 7500;
 
 function normalizeOrigin(origin) {
   return String(origin || "").trim().replace(/\/$/, "");
@@ -133,7 +134,11 @@ exports.handler = async function (event) {
     normalizedDeliveryMethod === "pickup" ? "Local Pickup" : "Standard Shipping";
 
   const shippingCents =
-    normalizedDeliveryMethod === "pickup" ? 0 : FLAT_RATE_SHIPPING_CENTS;
+  normalizedDeliveryMethod === "pickup"
+    ? 0
+    : productSubtotalCents >= FREE_SHIPPING_THRESHOLD_CENTS
+      ? 0
+      : FLAT_RATE_SHIPPING_CENTS;
 
   const productSubtotalCents = order.finalTotalCents;
   const finalTotalCents = productSubtotalCents + shippingCents;
