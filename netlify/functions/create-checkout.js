@@ -128,20 +128,21 @@ exports.handler = async function (event) {
   }
 
   const normalizedDeliveryMethod =
-    payload.delivery_method === "pickup" ? "pickup" : "shipping";
+  payload.delivery_method === "pickup" ? "pickup" : "shipping";
 
-  const normalizedDeliveryLabel =
-    normalizedDeliveryMethod === "pickup" ? "Local Pickup" : "Standard Shipping";
+const normalizedDeliveryLabel =
+  normalizedDeliveryMethod === "pickup" ? "Local Pickup" : "Standard Shipping";
 
-  const shippingCents =
+const productSubtotalCents = order.finalTotalCents;
+
+const shippingCents =
   normalizedDeliveryMethod === "pickup"
     ? 0
     : productSubtotalCents >= FREE_SHIPPING_THRESHOLD_CENTS
       ? 0
       : FLAT_RATE_SHIPPING_CENTS;
 
-  const productSubtotalCents = order.finalTotalCents;
-  const finalTotalCents = productSubtotalCents + shippingCents;
+const finalTotalCents = productSubtotalCents + shippingCents;
 
   console.log("pricing debug", {
     width,
