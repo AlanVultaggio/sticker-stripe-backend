@@ -185,11 +185,27 @@ exports.handler = async function (event) {
 
     const productName = getShapeProductName(shape);
 
+    const shapeLabelMap = {
+      "square-rectangle": "Square / Rectangle",
+      "circle-oval": "Circle / Oval",
+      "diecut": "Custom Shape",
+      "sticker-sheet": "Sticker Sheet"
+    };
+
+    const shapeLabel = shapeLabelMap[String(shape || "").toLowerCase()] || "";
+
     const productDescriptionParts = [
-      `${String(payload.width || "?")}x${String(payload.height || "?")} in`,
+      `${String(payload.width || "?")}" x ${String(payload.height || "?")}"`,
       `Qty ${String(payload.quantity || "?")}`,
-      finish || ""
+      finish || "",
+      shapeLabel,
+      normalizedDeliveryLabel
     ].filter(Boolean);
+
+    const productDescription = [
+      projectName,
+      productDescriptionParts.join(" • ")
+    ].filter(Boolean).join(" — ");
 
     const lineItems = [
       {
@@ -197,7 +213,7 @@ exports.handler = async function (event) {
           currency: "usd",
           product_data: {
             name: productName,
-            description: projectName || productDescriptionParts.join(" • ")
+            description: productDescription
           },
           unit_amount: productSubtotalCents
         },
