@@ -8,18 +8,18 @@
   "quantity_sqft_rates": {
     "25": 22,
     "50": 19,
-    "100": 16,
-    "250": 13,
-    "500": 11,
-    "1000": 9,
-    "2500": 7,
-    "5000": 6
+    "100": 14.08,
+    "250": 8.6,
+    "500": 6.8,
+    "1000": 5.1,
+    "2500": 3.6,
+    "5000": 2.9
   },
-"large_size_adjustments": [
-  { "min_area_sq_in": 16, "multiplier": 0.62 },
-  { "min_area_sq_in": 24, "multiplier": 0.45 },
-  { "min_area_sq_in": 36, "multiplier": 0.375 },
-  { "min_area_sq_in": 64, "multiplier": 0.3025 },
-  { "min_area_sq_in": 121, "multiplier": 0.32 }
-]
+  "large_size_adjustments": [
+    { "min_area_sq_in": 16, "multiplier": 0.74 },
+    { "min_area_sq_in": 24, "multiplier": 0.64 },
+    { "min_area_sq_in": 36, "multiplier": 0.45 },
+    { "min_area_sq_in": 64, "multiplier": 0.40 },
+    { "min_area_sq_in": 121, "multiplier": 0.34 }
+  ]
 }

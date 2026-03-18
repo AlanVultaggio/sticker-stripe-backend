@@ -164,7 +164,7 @@ const finalTotalCents = productSubtotalCents + shippingCents;
 
     const cancelUrl =
       process.env.CHECKOUT_CANCEL_URL ||
-      `${DEFAULT_ORIGIN}/sticker-order?checkout=cancel`;
+      `${DEFAULT_ORIGIN}/orderstickers?checkout=cancel`;
 
     const shape =
       (payload.order && payload.order.shape) ||
