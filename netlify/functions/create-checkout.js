@@ -128,27 +128,29 @@ exports.handler = async function (event) {
   }
 
   const normalizedDeliveryMethod =
-  payload.delivery_method === "pickup" ? "pickup" : "shipping";
+    payload.delivery_method === "pickup" ? "pickup" : "shipping";
 
-const normalizedDeliveryLabel =
-  normalizedDeliveryMethod === "pickup" ? "Local Pickup" : "Standard Shipping";
+  const normalizedDeliveryLabel =
+    normalizedDeliveryMethod === "pickup" ? "Local Pickup" : "Standard Shipping";
 
-const productSubtotalCents = order.finalTotalCents;
+  const productSubtotalCents = order.finalTotalCents;
+  const unitCents = Math.max(1, Math.round(productSubtotalCents / quantity));
 
-const shippingCents =
-  normalizedDeliveryMethod === "pickup"
-    ? 0
-    : productSubtotalCents >= FREE_SHIPPING_THRESHOLD_CENTS
+  const shippingCents =
+    normalizedDeliveryMethod === "pickup"
       ? 0
-      : FLAT_RATE_SHIPPING_CENTS;
+      : productSubtotalCents >= FREE_SHIPPING_THRESHOLD_CENTS
+        ? 0
+        : FLAT_RATE_SHIPPING_CENTS;
 
-const finalTotalCents = productSubtotalCents + shippingCents;
+  const finalTotalCents = productSubtotalCents + shippingCents;
 
   console.log("pricing debug", {
     width,
     height,
     quantity,
     productSubtotalCents,
+    unitCents,
     shippingCents,
     finalTotalCents,
     delivery_method: normalizedDeliveryMethod
@@ -223,16 +225,16 @@ const finalTotalCents = productSubtotalCents + shippingCents;
       cancel_url: cancelUrl,
 
       shipping_address_collection: {
-      allowed_countries: ["US"]
+        allowed_countries: ["US"]
       },
-      
+
       line_items: lineItems,
-      
+
       metadata: {
         width: String(payload.width || ""),
         height: String(payload.height || ""),
         quantity: String(payload.quantity || ""),
-        unit_cents: String(payload.unit_cents || ""),
+        unit_cents: String(unitCents),
         product_subtotal_cents: String(productSubtotalCents),
         shipping_cents: String(shippingCents),
         total_cents: String(finalTotalCents),
