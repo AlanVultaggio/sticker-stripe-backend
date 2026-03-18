@@ -173,10 +173,13 @@ exports.handler = async function (event) {
       payload.shape ||
       "";
 
-    const finish =
+    const rawFinish =
       (payload.order && payload.order.finish) ||
       payload.finish ||
       "";
+
+    const finish =
+      rawFinish.charAt(0).toUpperCase() + rawFinish.slice(1);
 
     const projectName =
       payload.jobName ||
