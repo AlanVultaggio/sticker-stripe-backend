@@ -2,6 +2,8 @@
 
 const CONFIG = require("./pricing-config.json");
 
+const MIN_EFFECTIVE_RATE_PER_SQFT = 3.25;
+
 function isValidNumber(value) {
   return Number.isFinite(value) && value > 0;
 }
@@ -53,7 +55,7 @@ function getSqFtRate(quantity, billableAreaSqIn) {
     }
   }
 
-  return adjustedRate;
+  return Math.max(adjustedRate, MIN_EFFECTIVE_RATE_PER_SQFT);
 }
 
 function calculateStickerOrder(width, height, quantity) {

@@ -20,15 +20,15 @@
     250: 8.6,
     500: 6.8,
     1000: 5.1,
-    2500: 3.6,
-    5000: 2.9
+    2500: 6.2,
+    5000: 5.6
   },
   largeSizeAdjustments: [
     { minAreaSqIn: 16, multiplier: 0.74 },
     { minAreaSqIn: 24, multiplier: 0.64 },
-    { minAreaSqIn: 36, multiplier: 0.45 },
-    { minAreaSqIn: 64, multiplier: 0.40 },
-    { minAreaSqIn: 121, multiplier: 0.34 }
+    { minAreaSqIn: 36, multiplier: 0.65 },
+    { minAreaSqIn: 64, multiplier: 0.58 },
+    { minAreaSqIn: 121, multiplier: 0.52 }
   ]
 };
 
