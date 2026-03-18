@@ -5,32 +5,32 @@
   const el = (id) => document.getElementById(id);
 
   const CONFIG = {
-    minWidth: 1,
-    minHeight: 1,
-    maxWidth: 24,
-    maxHeight: 24,
-    minimumBillableAreaSqIn: 4,
-    minimumOrderDollars: 36.95,
-    flatRateShippingCents: 895,
-    freeShippingThresholdCents: 7500,
-    quantitySqFtRates: {
-      25: 22,
-      50: 19,
-      100: 16,
-      250: 13,
-      500: 11,
-      1000: 9,
-      2500: 7,
-      5000: 6
-    },
-    largeSizeAdjustments: [
-      { minAreaSqIn: 16, multiplier: 0.62 },
-      { minAreaSqIn: 24, multiplier: 0.45 },
-      { minAreaSqIn: 36, multiplier: 0.375 },
-      { minAreaSqIn: 64, multiplier: 0.3025 },
-      { minAreaSqIn: 121, multiplier: 0.32 }
-    ]
-  };
+  minWidth: 1,
+  minHeight: 1,
+  maxWidth: 24,
+  maxHeight: 24,
+  minimumBillableAreaSqIn: 4,
+  minimumOrderDollars: 36.95,
+  flatRateShippingCents: 895,
+  freeShippingThresholdCents: 7500,
+  quantitySqFtRates: {
+    25: 22,
+    50: 19,
+    100: 14.08,
+    250: 8.6,
+    500: 6.8,
+    1000: 5.1,
+    2500: 3.6,
+    5000: 2.9
+  },
+  largeSizeAdjustments: [
+    { minAreaSqIn: 16, multiplier: 0.74 },
+    { minAreaSqIn: 24, multiplier: 0.64 },
+    { minAreaSqIn: 36, multiplier: 0.45 },
+    { minAreaSqIn: 64, multiplier: 0.40 },
+    { minAreaSqIn: 121, multiplier: 0.34 }
+  ]
+};
 
   const form = el("stickerOrderForm");
   const widthIn = el("widthIn");
