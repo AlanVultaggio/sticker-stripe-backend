@@ -2,13 +2,65 @@
 
 const { calculateStickerOrder } = require("./netlify/functions/pricing-engine");
 
-function test(width, height, quantity) {
+// Toggle detailed object logging
+const DEBUG = false;
+
+// Full matrix sizes
+const SIZES = [
+  [2, 2],
+  [3, 3],
+  [4, 4],
+  [5, 5],
+  [6, 6],
+  [8, 8],
+  [10, 10],
+  [12, 12],
+];
+
+// Full matrix quantities
+const QUANTITIES = [25, 50, 100, 250, 500, 1000, 2500, 5000];
+
+// Focused breakpoint tests using only live site quantities
+const BREAKPOINT_CASES = [
+  [4, 4, 250],
+  [4, 4, 500],
+  [4, 4, 1000],
+  [4, 4, 2500],
+
+  [5, 5, 250],
+  [5, 5, 500],
+  [5, 5, 1000],
+  [5, 5, 2500],
+
+  [6, 6, 250],
+  [6, 6, 500],
+  [6, 6, 1000],
+  [6, 6, 2500],
+
+  [8, 8, 250],
+  [8, 8, 500],
+  [8, 8, 1000],
+  [8, 8, 2500],
+
+  [10, 10, 250],
+  [10, 10, 500],
+  [10, 10, 1000],
+  [10, 10, 2500],
+
+  [12, 12, 100],
+  [12, 12, 250],
+  [12, 12, 500],
+  [12, 12, 1000],
+];
+
+function formatMoneyFromCents(cents) {
+  return `$${(cents / 100).toFixed(2)}`;
+}
+
+function calculate(width, height, quantity) {
   const result = calculateStickerOrder(width, height, quantity);
 
-  if (!result) {
-    console.log(`❌ ${width}x${height} @ ${quantity} → invalid`);
-    return;
-  }
+  if (!result) return null;
 
   const totalCents =
     result.finalTotalCents ||
@@ -16,48 +68,127 @@ function test(width, height, quantity) {
     result.totalCents ||
     0;
 
-  const total = (totalCents / 100).toFixed(2);
-  const unit = (totalCents / 100 / quantity).toFixed(2);
+  const total = totalCents / 100;
+  const unit = total / quantity;
+  const rate = result.ratePerSqFt || 0;
+  const areaSqFt = result.areaSqFt || 0;
+  const totalSqFt = areaSqFt * quantity;
 
-  console.log(result);
-  console.log(`${width}"x${height}" @ ${quantity} → $${total} total ($${unit}/ea)`);
+  return {
+    width,
+    height,
+    quantity,
+    totalCents,
+    total,
+    unit,
+    rate,
+    areaSqFt,
+    totalSqFt,
+    raw: result,
+  };
 }
 
-console.log("\n--- TESTING PRICING ENGINE ---\n");
+function printRow(row) {
+  const sizeLabel = `${row.width}"x${row.height}"`.padEnd(8);
+  const qtyLabel = `@ ${String(row.quantity).padEnd(5)}`;
+  const totalLabel = `| total: ${formatMoneyFromCents(row.totalCents).padEnd(10)}`;
+  const unitLabel = `| per ea: $${row.unit.toFixed(2).padEnd(6)}`;
+  const rateLabel = `| rate/sqft: ${row.rate.toFixed(2)}`;
 
-// 3x3
-test(3, 3, 100);
-test(3, 3, 250);
-test(3, 3, 500);
-test(3, 3, 1000);
-test(3, 3, 2500);
-test(3, 3, 5000);
+  console.log(`${sizeLabel} ${qtyLabel} ${totalLabel} ${unitLabel} ${rateLabel}`);
 
-console.log("");
+  if (DEBUG) {
+    console.log(row.raw);
+  }
+}
 
-// 5x5
-test(5, 5, 100);
-test(5, 5, 250);
-test(5, 5, 500);
-test(5, 5, 1000);
-test(5, 5, 2500);
-test(5, 5, 5000);
+function printBreakpointRow(row) {
+  const sizeLabel = `${row.width}"x${row.height}"`.padEnd(8);
+  const qtyLabel = `@ ${String(row.quantity).padEnd(5)}`;
+  const totalLabel = `| total: ${formatMoneyFromCents(row.totalCents).padEnd(10)}`;
+  const unitLabel = `| per ea: $${row.unit.toFixed(2).padEnd(6)}`;
+  const rateLabel = `| rate/sqft: ${row.rate.toFixed(2).padEnd(5)}`;
+  const sqftLabel = `| total sqft: ${row.totalSqFt.toFixed(1).padEnd(6)}`;
 
-console.log("");
+  console.log(
+    `${sizeLabel} ${qtyLabel} ${totalLabel} ${unitLabel} ${rateLabel} ${sqftLabel}`
+  );
 
-// 6x6
-test(6, 6, 100);
-test(6, 6, 250);
-test(6, 6, 500);
-test(6, 6, 1000);
-test(6, 6, 2500);
-test(6, 6, 5000);
+  if (DEBUG) {
+    console.log(row.raw);
+  }
+}
 
-console.log("");
+function runFullMatrix() {
+  console.log("\n==============================");
+  console.log("   PRICING CURVE TEST MATRIX");
+  console.log("==============================");
 
-// 12x12 (large format sanity check)
-test(12, 12, 25);
-test(12, 12, 50);
-test(12, 12, 100);
+  for (const [w, h] of SIZES) {
+    console.log(`\n===== ${w}" x ${h}" =====`);
 
-console.log("");
+    for (const q of QUANTITIES) {
+      const row = calculate(w, h, q);
+
+      if (!row) {
+        console.log(`❌ ${w}"x${h}" @ ${q} → invalid`);
+        continue;
+      }
+
+      printRow(row);
+    }
+  }
+
+  console.log("\n✅ Matrix test complete.\n");
+}
+
+function runBreakpointFocus() {
+  console.log("\n======================================");
+  console.log("   BREAKPOINT / FLOOR FOCUS CHECK");
+  console.log("======================================");
+
+  const grouped = {};
+
+  for (const [w, h, q] of BREAKPOINT_CASES) {
+    const row = calculate(w, h, q);
+
+    if (!row) {
+      console.log(`❌ ${w}"x${h}" @ ${q} → invalid`);
+      continue;
+    }
+
+    const key = `${w}" x ${h}"`;
+    if (!grouped[key]) grouped[key] = [];
+    grouped[key].push(row);
+  }
+
+  for (const [section, rows] of Object.entries(grouped)) {
+    console.log(`\n===== ${section} =====`);
+
+    rows.sort((a, b) => a.quantity - b.quantity);
+
+    let prevUnit = null;
+    let prevRate = null;
+
+    for (const row of rows) {
+      printBreakpointRow(row);
+
+      if (prevUnit !== null && prevRate !== null) {
+        const unitDrop = (((prevUnit - row.unit) / prevUnit) * 100).toFixed(1);
+        const rateDrop = (((prevRate - row.rate) / prevRate) * 100).toFixed(1);
+
+        console.log(
+          `         Δ from prior qty → per ea: ${unitDrop}% lower | rate/sqft: ${rateDrop}% lower`
+        );
+      }
+
+      prevUnit = row.unit;
+      prevRate = row.rate;
+    }
+  }
+
+  console.log("\n✅ Breakpoint focus check complete.\n");
+}
+
+runFullMatrix();
+runBreakpointFocus();

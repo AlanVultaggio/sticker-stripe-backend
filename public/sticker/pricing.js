@@ -3,34 +3,35 @@
   window.UC_PRICING_LOADED = true;
 
   const el = (id) => document.getElementById(id);
+  const MIN_EFFECTIVE_RATE_PER_SQFT = 3.38;
 
   const CONFIG = {
-  minWidth: 1,
-  minHeight: 1,
-  maxWidth: 24,
-  maxHeight: 24,
-  minimumBillableAreaSqIn: 4,
-  minimumOrderDollars: 36.95,
-  flatRateShippingCents: 895,
-  freeShippingThresholdCents: 7500,
-  quantitySqFtRates: {
-    25: 22,
-    50: 19,
-    100: 14.08,
-    250: 8.6,
-    500: 6.8,
-    1000: 5.1,
-    2500: 6.2,
-    5000: 5.6
-  },
-  largeSizeAdjustments: [
-    { minAreaSqIn: 16, multiplier: 0.74 },
-    { minAreaSqIn: 24, multiplier: 0.64 },
-    { minAreaSqIn: 36, multiplier: 0.65 },
-    { minAreaSqIn: 64, multiplier: 0.58 },
-    { minAreaSqIn: 121, multiplier: 0.52 }
-  ]
-};
+    minWidth: 1,
+    minHeight: 1,
+    maxWidth: 24,
+    maxHeight: 24,
+    minimumBillableAreaSqIn: 4,
+    minimumOrderDollars: 34.95,
+    flatRateShippingCents: 895,
+    freeShippingThresholdCents: 7500,
+    quantitySqFtRates: {
+      25: 22,
+      50: 19,
+      100: 14.08,
+      250: 8.6,
+      500: 6.8,
+      1000: 5.1,
+      2500: 4.2,
+      5000: 3.6
+    },
+    largeSizeAdjustments: [
+      { minAreaSqIn: 16, multiplier: 0.74 },
+      { minAreaSqIn: 24, multiplier: 0.64 },
+      { minAreaSqIn: 36, multiplier: 0.52 },
+      { minAreaSqIn: 64, multiplier: 0.48 },
+      { minAreaSqIn: 121, multiplier: 0.44 }
+    ]
+  };
 
   const form = el("stickerOrderForm");
   const widthIn = el("widthIn");
@@ -152,7 +153,7 @@
       }
     }
 
-    return adjustedRate;
+    return Math.max(adjustedRate, MIN_EFFECTIVE_RATE_PER_SQFT);
   }
 
   function calc() {

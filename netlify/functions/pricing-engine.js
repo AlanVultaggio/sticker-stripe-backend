@@ -2,7 +2,7 @@
 
 const CONFIG = require("./pricing-config.json");
 
-const MIN_EFFECTIVE_RATE_PER_SQFT = 3.25;
+const MIN_EFFECTIVE_RATE_PER_SQFT = 3.38;
 
 function isValidNumber(value) {
   return Number.isFinite(value) && value > 0;
