@@ -52,7 +52,7 @@ function formatShapeLabel(shape) {
   const map = {
     "square-rectangle": "Square / Rectangle",
     "circle-oval": "Circle / Oval",
-    diecut: "Custom Kiss-Cut Shape",
+    diecut: "Custom Shape",
     "sticker-sheet": "Sticker Sheets",
   };
 

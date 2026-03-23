@@ -20,7 +20,7 @@ function getShapeProductName(shape) {
   const map = {
     "square-rectangle": "Square / Rectangle Stickers",
     "circle-oval": "Circle / Oval Stickers",
-    diecut: "Custom Kiss-Cut Stickers",
+    diecut: "Custom Shape Stickers",
     "sticker-sheet": "Sticker Sheets"
   };
 
