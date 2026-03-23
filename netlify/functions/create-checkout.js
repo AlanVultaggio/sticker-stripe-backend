@@ -239,36 +239,44 @@ exports.handler = async function (event) {
     }
 
     const session = await stripe.checkout.sessions.create({
-      mode: "payment",
-      success_url: successUrl,
-      cancel_url: cancelUrl,
+  mode: "payment",
+  success_url: successUrl,
+  cancel_url: cancelUrl,
 
-      shipping_address_collection: {
-        allowed_countries: ["US"]
-      },
+  billing_address_collection: "required",
 
-      line_items: lineItems,
+  shipping_address_collection: {
+    allowed_countries: ["US"]
+  },
 
-      metadata: {
-        width: String(payload.width || ""),
-        height: String(payload.height || ""),
-        quantity: String(payload.quantity || ""),
-        unit_cents: String(unitCents),
-        product_subtotal_cents: String(productSubtotalCents),
-        shipping_cents: String(shippingCents),
-        total_cents: String(finalTotalCents),
-        delivery_method: normalizedDeliveryMethod,
-        delivery_label: normalizedDeliveryLabel,
-        jobName: String(projectName || ""),
-        upload_source: String(payload.upload_source || ""),
-        shape: String(shape || ""),
-        finish: String(finish || ""),
-        lamination: String(payload.lamination || ""),
-        material: String(payload.material || ""),
-        rush: String(payload.rush || ""),
-        notes: String(payload.notes || "")
-      }
-    });
+  automatic_tax: {
+    enabled: true
+  },
+
+  customer_creation: "always",
+
+  line_items: lineItems,
+
+  metadata: {
+    width: String(payload.width || ""),
+    height: String(payload.height || ""),
+    quantity: String(payload.quantity || ""),
+    unit_cents: String(unitCents),
+    product_subtotal_cents: String(productSubtotalCents),
+    shipping_cents: String(shippingCents),
+    total_cents: String(finalTotalCents),
+    delivery_method: normalizedDeliveryMethod,
+    delivery_label: normalizedDeliveryLabel,
+    jobName: String(projectName || ""),
+    upload_source: String(payload.upload_source || ""),
+    shape: String(shape || ""),
+    finish: String(finish || ""),
+    lamination: String(payload.lamination || ""),
+    material: String(payload.material || ""),
+    rush: String(payload.rush || ""),
+    notes: String(payload.notes || "")
+  }
+});
 
     return jsonResponse(200, corsHeaders, {
       ok: true,

@@ -39,11 +39,6 @@ function formatMoneyFromCents(cents) {
   return `$${(amount / 100).toFixed(2)}`;
 }
 
-function formatMoneyFromDollars(dollars) {
-  const amount = Number(dollars || 0);
-  return `$${amount.toFixed(2)}`;
-}
-
 function formatSize(width, height) {
   const w = String(width || "").trim();
   const h = String(height || "").trim();
@@ -87,11 +82,6 @@ function formatUploadSource(source) {
   return map[raw] || String(source || "").trim();
 }
 
-function maybeLine(label, value) {
-  const text = String(value || "").trim();
-  return text ? `${label}: ${text}` : null;
-}
-
 function getShippingDetails(session) {
   return session?.shipping_details || null;
 }
@@ -110,13 +100,7 @@ function formatAddressLines(shippingDetails) {
   const cityLine = [city, state].filter(Boolean).join(", ");
   const cityStatePostal = [cityLine, postalCode].filter(Boolean).join(" ");
 
-  return [
-    name,
-    line1,
-    line2,
-    cityStatePostal,
-    country,
-  ].filter(Boolean);
+  return [name, line1, line2, cityStatePostal, country].filter(Boolean);
 }
 
 exports.handler = async (event) => {
@@ -140,6 +124,7 @@ exports.handler = async (event) => {
     console.error("Missing STRIPE_SECRET_KEY");
     return json(500, { error: "Server misconfigured: missing STRIPE_SECRET_KEY" });
   }
+
   if (!webhookSecret) {
     console.error("Missing STRIPE_WEBHOOK_SECRET");
     return json(500, { error: "Server misconfigured: missing STRIPE_WEBHOOK_SECRET" });
@@ -169,11 +154,10 @@ exports.handler = async (event) => {
   try {
     if (stripeEvent.type === "checkout.session.completed") {
       const session = stripeEvent.data.object;
+      const md = session.metadata || {};
 
       const sessionId = session.id;
-      const amountTotal =
-        typeof session.amount_total === "number" ? session.amount_total : 0;
-      const dollars = (amountTotal / 100).toFixed(2);
+      const paymentStatus = session.payment_status || "(unknown)";
 
       const customerEmail =
         session?.customer_details?.email ||
@@ -188,9 +172,6 @@ exports.handler = async (event) => {
         session?.customer_details?.phone ||
         "";
 
-      const paymentStatus = session.payment_status || "(unknown)";
-      const md = session.metadata || {};
-
       const shippingDetails = getShippingDetails(session);
       const shippingAddressLines = formatAddressLines(shippingDetails);
 
@@ -199,70 +180,97 @@ exports.handler = async (event) => {
       const sizeLabel = formatSize(md.width, md.height);
       const uploadSource = formatUploadSource(md.upload_source) || "File Request Pro";
 
+      // ---------- BOOKKEEPING TOTALS ----------
+      // Metadata values from your pricing engine / create-checkout.js
       const productSubtotalCents = Number(md.product_subtotal_cents || 0);
       const shippingCents = Number(md.shipping_cents || 0);
-      const totalCents = Number(md.total_cents || amountTotal || 0);
+      const metadataPretaxTotalCents = Number(md.total_cents || 0);
+
+      // Stripe-confirmed financial totals
+      const amountSubtotalCents =
+        typeof session.amount_subtotal === "number" ? session.amount_subtotal : 0;
+
+      const amountTotalCents =
+        typeof session.amount_total === "number" ? session.amount_total : 0;
+
+      const taxCents =
+        typeof session?.total_details?.amount_tax === "number"
+          ? session.total_details.amount_tax
+          : 0;
+
+      const amountSubtotalDisplay = formatMoneyFromCents(amountSubtotalCents);
+      const amountTotalDisplay = formatMoneyFromCents(amountTotalCents);
 
       console.log("✅ checkout.session.completed");
       console.log("Session:", sessionId);
       console.log("Customer email:", customerEmail || "(not provided)");
-      console.log("Amount:", dollars);
       console.log("Payment status:", paymentStatus);
+      console.log("Product subtotal cents:", productSubtotalCents);
+      console.log("Shipping cents:", shippingCents);
+      console.log("Tax cents:", taxCents);
+      console.log("Stripe subtotal cents:", amountSubtotalCents);
+      console.log("Stripe total cents:", amountTotalCents);
 
       if (!resendKey) {
         console.warn("RESEND_API_KEY missing — skipping internal email send.");
       } else {
-        const subject = `New Sticker Order — $${dollars} (${paymentStatus})`;
+        const subject = `New Sticker Order — ${amountTotalDisplay} (${paymentStatus})`;
 
         const lines = [
-  `New Sticker Order (Stripe)`,
-  ``,
+          `New Sticker Order (Stripe)`,
+          ``,
 
-  `PROJECT`,
-  md.jobName || "Sticker Order",
-  ``,
+          `PROJECT`,
+          md.jobName || "Sticker Order",
+          ``,
 
-  `CUSTOMER`,
-  customerName || "(not provided)",
-  customerEmail || "",
-  customerPhone || "",
-  ``,
+          `CUSTOMER`,
+          customerName || "(not provided)",
+          customerEmail || "",
+          customerPhone || "",
+          ``,
 
-  ...(shippingAddressLines.length
-    ? ["SHIPPING ADDRESS", ...shippingAddressLines, ``]
-    : []),
+          ...(shippingAddressLines.length
+            ? ["SHIPPING ADDRESS", ...shippingAddressLines, ``]
+            : []),
 
-  `PRODUCT`,
-  shapeLabel,
-  sizeLabel,
-  `Qty: ${md.quantity || ""}`,
-  `Finish: ${finishLabel}`,
-  ``,
+          `PRODUCT`,
+          shapeLabel || "Custom Stickers",
+          sizeLabel,
+          `Qty: ${md.quantity || ""}`,
+          `Finish: ${finishLabel || "—"}`,
+          ``,
 
-  `DELIVERY`,
-  md.delivery_label || "",
-  shippingCents === 0 ? "Free Pickup" : formatMoneyFromCents(shippingCents),
-  ``,
+          `DELIVERY`,
+          md.delivery_label || "",
+          shippingCents === 0
+            ? (md.delivery_method === "pickup" ? "Free Pickup" : "Free Shipping")
+            : formatMoneyFromCents(shippingCents),
+          ``,
 
-  `UPLOAD`,
-  uploadSource,
-  ``,
+          `UPLOAD`,
+          uploadSource,
+          ``,
 
-  `PRICING`,
-  `Subtotal: ${productSubtotalCents ? formatMoneyFromCents(productSubtotalCents) : ""}`,
-  `Shipping: ${shippingCents === 0 ? "Free" : formatMoneyFromCents(shippingCents)}`,
-  `Total: ${totalCents ? formatMoneyFromCents(totalCents) : formatMoneyFromDollars(dollars)}`,
-  ``,
+          `PRICING`,
+          `Product subtotal: ${formatMoneyFromCents(productSubtotalCents)}`,
+          `Shipping: ${shippingCents === 0 ? "Free" : formatMoneyFromCents(shippingCents)}`,
+          `Pre-tax subtotal: ${amountSubtotalDisplay}`,
+          `Sales tax: ${formatMoneyFromCents(taxCents)}`,
+          `Total paid: ${amountTotalDisplay}`,
+          ``,
 
-  `NOTES`,
-  md.notes || "—",
-  ``,
+          `NOTES`,
+          md.notes || "—",
+          ``,
 
-  `INTERNAL`,
-  `Shape code: ${md.shape || ""}`,
-  `Session ID: ${sessionId}`,
-  `Created: ${new Date((session.created || 0) * 1000).toISOString()}`
-].filter(Boolean);
+          `INTERNAL`,
+          `Shape code: ${md.shape || ""}`,
+          `Session ID: ${sessionId}`,
+          `Payment Intent: ${session.payment_intent || ""}`,
+          `Metadata pre-tax total: ${formatMoneyFromCents(metadataPretaxTotalCents)}`,
+          `Created: ${new Date((session.created || 0) * 1000).toISOString()}`
+        ].filter(Boolean);
 
         const textBody = lines.join("\n");
 
@@ -300,88 +308,86 @@ exports.handler = async (event) => {
           const payload = {
             secret: sheetSecret,
             contents: {
+              /* ---------- CORE STRIPE DATA ---------- */
+              order_id: sessionId,
+              checkout_session_id: sessionId,
+              stripe_event_id: stripeEvent.id || "",
+              payment_intent_id: session.payment_intent || "",
+              mode: session.mode || "",
 
-  /* ---------- CORE STRIPE DATA ---------- */
+              /* ---------- PAYMENT ---------- */
+              currency: (session.currency || "usd").toUpperCase(),
+              status: paymentStatus,
+              order_status: paymentStatus,
 
-  order_id: sessionId,
-  checkout_session_id: sessionId,
-  stripe_event_id: stripeEvent.id || "",
-  payment_intent_id: session.payment_intent || "",
-  mode: session.mode || "",
+              // Best-practice bookkeeping fields
+              product_subtotal_cents: String(productSubtotalCents),
+              shipping_cents: String(shippingCents),
+              subtotal_cents: String(amountSubtotalCents),
+              tax_cents: String(taxCents),
+              total_paid_cents: String(amountTotalCents),
 
+              product_subtotal: formatMoneyFromCents(productSubtotalCents),
+              shipping_amount: formatMoneyFromCents(shippingCents),
+              subtotal_amount: formatMoneyFromCents(amountSubtotalCents),
+              tax_amount: formatMoneyFromCents(taxCents),
+              amount_total: formatMoneyFromCents(amountTotalCents),
 
-  /* ---------- PAYMENT ---------- */
+              // Legacy compatibility
+              total_cents: String(amountTotalCents),
 
-  amount_total: dollars,
-  currency: (session.currency || "usd").toUpperCase(),
-  status: paymentStatus,
-  order_status: paymentStatus,
+              /* ---------- CUSTOMER ---------- */
+              customer_email: customerEmail || "",
+              customer_name: customerName || "",
+              phone: customerPhone || "",
 
+              /* ---------- JOB INFO ---------- */
+              job_name: md.jobName || "",
 
-  /* ---------- CUSTOMER ---------- */
+              /* ---------- SIZE ---------- */
+              width: md.width || "",
+              height: md.height || "",
+              width_in: md.width || "",
+              height_in: md.height || "",
 
-  customer_email: customerEmail || "",
-  customer_name: customerName || "",
-  phone: customerPhone || "",
+              /* ---------- QUANTITY / PRICING ---------- */
+              quantity: md.quantity || "",
+              unit_cents: md.unit_cents || "",
 
+              /* ---------- PRODUCT OPTIONS ---------- */
+              shape: md.shape || "",
+              finish: md.finish || "",
+              lamination: md.lamination || md.finish || "",
+              material: md.material || "",
+              rush: md.rush || "",
 
-  /* ---------- JOB INFO ---------- */
+              /* ---------- FILE UPLOAD ---------- */
+              upload_source: md.upload_source || "",
+              upload_url: md.upload_url || md.upload_source || "",
+              upload_confirmed: md.upload_confirmed || "",
 
-  job_name: md.jobName || "",
+              /* ---------- PREFLIGHT / PROOF ---------- */
+              proof_required: md.proof_required || "",
 
+              /* ---------- DELIVERY ---------- */
+              delivery_method: md.delivery_method || "",
+              delivery_label: md.delivery_label || "",
 
-  /* ---------- SIZE ---------- */
+              /* ---------- ADDRESS ---------- */
+              shipping_name: shippingDetails?.name || "",
+              shipping_line1: shippingDetails?.address?.line1 || "",
+              shipping_line2: shippingDetails?.address?.line2 || "",
+              shipping_city: shippingDetails?.address?.city || "",
+              shipping_state: shippingDetails?.address?.state || "",
+              shipping_postal_code: shippingDetails?.address?.postal_code || "",
+              shipping_country: shippingDetails?.address?.country || "",
 
-  width: md.width || "",
-  height: md.height || "",
-  width_in: md.width || "",
-  height_in: md.height || "",
+              /* ---------- NOTES ---------- */
+              notes: md.notes || "",
 
-
-  /* ---------- QUANTITY / PRICING ---------- */
-
-  quantity: md.quantity || "",
-  unit_cents: md.unit_cents || "",
-  total_cents: md.total_cents || "",
-
-
-  /* ---------- PRODUCT OPTIONS ---------- */
-
-  shape: md.shape || "",
-  finish: md.finish || "",
-  lamination: md.lamination || md.finish || "",
-  material: md.material || "",
-  rush: md.rush || "",
-
-
-  /* ---------- FILE UPLOAD ---------- */
-
-  upload_source: md.upload_source || "",
-  upload_url: md.upload_url || md.upload_source || "",
-  upload_confirmed: md.upload_confirmed || "",
-
-
-  /* ---------- PREFLIGHT / PROOF ---------- */
-
-  proof_required: md.proof_required || "",
-
-
-  /* ---------- DELIVERY ---------- */
-
-  delivery_label: md.delivery_label || "",
-  shipping_cents: md.shipping_cents || "",
-
-
-  /* ---------- NOTES ---------- */
-
-  notes: md.notes || "",
-
-
-  /* ---------- DEBUG / ORIGIN ---------- */
-
-  source_origin: "stripe-webhook"
-
-}
+              /* ---------- DEBUG / ORIGIN ---------- */
+              source_origin: "stripe-webhook"
+            }
           };
 
           const sheetResp = await fetch(sheetUrl, {
